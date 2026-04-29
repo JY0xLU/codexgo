@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.test-work/
+.tmp-pytest/
+pytest-cache-files-*/
+.tools/
+go-dl.json
