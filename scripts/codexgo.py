@@ -79,6 +79,23 @@ REFERENCE_WORDS = (
     "按上面",
 )
 
+AMBIGUOUS_COUNT_TERMS = (
+    "两端",
+    "三端",
+    "两种",
+    "三种",
+    "两个",
+    "三个",
+    "这两种",
+    "这三种",
+    "这两个",
+    "这三个",
+    "那两种",
+    "那三种",
+    "那两个",
+    "那三个",
+)
+
 CONCRETE_HINTS = (
     "/",
     "\\",
@@ -98,6 +115,22 @@ CONCRETE_HINTS = (
     "实现",
     "重构",
     "读取",
+)
+
+SELECTION_HINTS = (
+    "choose",
+    "select",
+    "decide",
+    "compare",
+    "which",
+    "pick",
+    "选",
+    "选择",
+    "选型",
+    "择优",
+    "对比",
+    "比较",
+    "哪个",
 )
 
 
@@ -126,6 +159,7 @@ class Resolved:
     context_index: int
     assistant_message_before_last_user: str = ""
     previous_context_message: str = ""
+    decision_basis_message: str = ""
     needs_more_context: bool = False
     ambiguity_hints: tuple[str, ...] = ()
 
@@ -340,11 +374,35 @@ def is_supplement(text: str) -> bool:
 
 def has_concrete_hint(text: str) -> bool:
     lower = text.lower()
-    if re.search(r"(^|\n)\s*(?:[-*]|\d+[.)、])\s+", text):
+    if has_list(text):
+        return True
+    if count_inline_candidates(text) >= 3:
         return True
     return any(hint in lower for hint in CONCRETE_HINTS if hint.isascii()) or any(
         hint in text for hint in CONCRETE_HINTS if not hint.isascii()
     )
+
+
+def has_list(text: str) -> bool:
+    return re.search(r"(^|\n)\s*(?:[-*]|\d+[.)、])\s+", text) is not None
+
+
+def count_inline_candidates(text: str) -> int:
+    candidates = re.split(r"\s*(?:/|,|，|、|\|| vs | VS | versus | 和 | 与 | or )\s*", text)
+    return sum(1 for candidate in candidates if re.search(r"[A-Za-z0-9\u4e00-\u9fff]{2,}", candidate))
+
+
+def has_selection_hint(text: str) -> bool:
+    lower = text.lower()
+    return any(hint in lower for hint in SELECTION_HINTS if hint.isascii()) or any(
+        hint in text for hint in SELECTION_HINTS if not hint.isascii()
+    )
+
+
+def is_decision_basis(text: str) -> bool:
+    if not has_selection_hint(text):
+        return False
+    return has_list(text) or count_inline_candidates(text) >= 3
 
 
 def ambiguity_hints(text: str) -> tuple[str, ...]:
@@ -358,14 +416,29 @@ def ambiguity_hints(text: str) -> tuple[str, ...]:
         word in text for word in REFERENCE_WORDS if not word.isascii()
     ):
         hints.append("reference")
+    if any(term in text for term in AMBIGUOUS_COUNT_TERMS):
+        hints.append("count_shorthand")
     if ("方案" in text or "plan" in lower) and not has_concrete_hint(text):
         hints.append("plan_reference")
     return tuple(dict.fromkeys(hints))
 
 
+def combine_ambiguity_hints(*texts: str) -> tuple[str, ...]:
+    combined: list[str] = []
+    for text in texts:
+        if not text.strip():
+            continue
+        for hint in ambiguity_hints(text):
+            if hint not in combined:
+                combined.append(hint)
+    return tuple(combined)
+
+
 def needs_context(text: str) -> bool:
     hints = ambiguity_hints(text)
     if "low_signal" in hints or "agreement" in hints:
+        return True
+    if "count_shorthand" in hints:
         return True
     if "reference" in hints or "plan_reference" in hints:
         return not has_concrete_hint(text)
@@ -380,6 +453,49 @@ def previous_context(entries: list[Entry], before_index: int) -> tuple[int, Entr
         if entry.role == "user" and not (is_low_signal(entry.text) or is_agreement(entry.text) or is_supplement(entry.text)):
             return index, entry
     return None
+
+
+def previous_decision_basis(entries: list[Entry], before_index: int, max_scan: int = 32) -> tuple[int, Entry] | None:
+    floor = max(0, before_index - max_scan)
+    for index in range(before_index - 1, floor - 1, -1):
+        entry = entries[index]
+        if entry.role == "user" and is_decision_basis(entry.text):
+            return index, entry
+    return None
+
+
+def merge_decision_basis(decision_basis: str, current: str) -> str:
+    if not decision_basis:
+        return current
+    if not current:
+        return decision_basis
+    return f"{decision_basis}\n\nCurrent execution slice:\n{current}"
+
+
+def entry_resolves_ambiguity(text: str, hints: tuple[str, ...]) -> bool:
+    if not hints:
+        return False
+    if "count_shorthand" in hints and (has_list(text) or count_inline_candidates(text) >= 3):
+        return True
+    if ("reference" in hints or "plan_reference" in hints) and has_concrete_hint(text):
+        return True
+    return False
+
+
+def explanatory_context_index(entries: list[Entry], anchor_index: int, hints: tuple[str, ...], max_scan: int) -> int | None:
+    if anchor_index < 0 or not hints:
+        return None
+    floor = max(0, anchor_index - max_scan)
+    best_index: int | None = None
+    for index in range(anchor_index, floor - 1, -1):
+        entry = entries[index]
+        if not entry.text.strip():
+            continue
+        if entry_resolves_ambiguity(entry.text, hints):
+            best_index = index
+            if entry.role == "user" or has_list(entry.text):
+                break
+    return best_index
 
 
 def resolve(entries: list[Entry], first_user_message: str) -> Resolved:
@@ -403,33 +519,56 @@ def resolve(entries: list[Entry], first_user_message: str) -> Resolved:
         for index in range(last_user_index - 1, -1, -1):
             entry = entries[index]
             if entry.role == "assistant":
+                decision = previous_decision_basis(entries, index)
+                decision_index = index
+                decision_text = ""
+                resolved_text = entry.text
+                if decision is not None and needs_context(entry.text):
+                    decision_index, decision_entry = decision
+                    decision_text = decision_entry.text
+                    resolved_text = merge_decision_basis(decision_text, entry.text)
                 return Resolved(
                     literal_last_user_message=last_user,
-                    resolved_request=entry.text,
-                    resolved_source="assistant_suggestion",
+                    resolved_request=resolved_text,
+                    resolved_source="assistant_suggestion_with_decision_basis" if decision_text else "assistant_suggestion",
                     resolved_index=index,
-                    context_index=index,
+                    context_index=decision_index,
                     assistant_message_before_last_user=entry.text,
-                    previous_context_message=entry.text,
-                    needs_more_context=needs_context(entry.text),
-                    ambiguity_hints=ambiguity_hints(entry.text),
+                    previous_context_message=resolved_text,
+                    decision_basis_message=decision_text,
+                    needs_more_context=needs_context(resolved_text),
+                    ambiguity_hints=combine_ambiguity_hints(decision_text, entry.text),
                 )
 
     if is_supplement(last_user):
         context = previous_context(entries, last_user_index)
         if context is not None:
             context_index, entry = context
-            merged = f"{entry.text}\n\nSupplement:\n{last_user}"
+            decision_text = ""
+            base_context = entry.text
+            if entry.role == "assistant":
+                decision = previous_decision_basis(entries, context_index)
+                if decision is not None and needs_context(entry.text):
+                    decision_index, decision_entry = decision
+                    decision_text = decision_entry.text
+                    base_context = merge_decision_basis(decision_text, entry.text)
+                    context_index = decision_index
+            merged = f"{base_context}\n\nSupplement:\n{last_user}"
             return Resolved(
                 literal_last_user_message=last_user,
                 resolved_request=merged,
-                resolved_source=f"supplement_plus_previous_{entry.role}",
+                resolved_source=(
+                    f"supplement_plus_decision_basis_and_previous_{entry.role}"
+                    if decision_text
+                    else f"supplement_plus_previous_{entry.role}"
+                ),
                 resolved_index=last_user_index,
                 context_index=context_index,
                 assistant_message_before_last_user=entry.text if entry.role == "assistant" else "",
-                previous_context_message=entry.text,
-                needs_more_context=needs_context(entry.text) or needs_context(last_user),
-                ambiguity_hints=tuple(dict.fromkeys(ambiguity_hints(entry.text) + ambiguity_hints(last_user))),
+                previous_context_message=base_context,
+                decision_basis_message=decision_text,
+                needs_more_context=needs_context(base_context) or needs_context(last_user),
+                ambiguity_hints=combine_ambiguity_hints(base_context, last_user),
             )
 
     resolved_index = last_user_index
@@ -461,10 +600,28 @@ def last_meaningful(entries: list[Entry]) -> Entry:
 
 
 def supporting_context(entries: list[Entry], resolved: Resolved, lookback: int) -> list[dict[str, str]]:
+    context, _ = collect_supporting_context(entries, resolved, lookback)
+    return context
+
+
+def collect_supporting_context(entries: list[Entry], resolved: Resolved, lookback: int) -> tuple[list[dict[str, str]], bool]:
     if resolved.resolved_index < 0:
-        return []
-    start = max(0, min(resolved.context_index, resolved.resolved_index) - max(lookback, 0))
-    return [{"role": entry.role, "text": entry.text} for entry in entries[start : resolved.resolved_index + 1]]
+        return [], False
+    anchor = min(resolved.context_index, resolved.resolved_index)
+    effective_lookback = max(lookback, 0)
+    start = max(0, anchor - effective_lookback)
+    expanded = False
+    if resolved.needs_more_context or resolved.ambiguity_hints:
+        explanatory_index = explanatory_context_index(
+            entries,
+            anchor,
+            resolved.ambiguity_hints,
+            max(effective_lookback * 4, 12),
+        )
+        if explanatory_index is not None and explanatory_index < start:
+            start = explanatory_index
+            expanded = True
+    return [{"role": entry.role, "text": entry.text} for entry in entries[start : resolved.resolved_index + 1]], expanded
 
 
 def recent_user_messages(entries: list[Entry], count: int) -> list[str]:
@@ -487,6 +644,7 @@ def build_result(args: argparse.Namespace) -> dict[str, object]:
     entries = parse_rollout(Path(thread.rollout_path))
     resolved = resolve(entries, thread.first_user_message)
     tail = last_meaningful(entries)
+    context, context_expanded_upward = collect_supporting_context(entries, resolved, args.lookback)
     return {
         "status": "ok",
         "current_cwd": cwd,
@@ -503,9 +661,11 @@ def build_result(args: argparse.Namespace) -> dict[str, object]:
         "resolved_source": resolved.resolved_source,
         "assistant_message_before_last_user": resolved.assistant_message_before_last_user,
         "previous_context_message": resolved.previous_context_message,
+        "decision_basis_message": resolved.decision_basis_message,
         "needs_more_context": resolved.needs_more_context,
         "ambiguity_hints": list(resolved.ambiguity_hints),
-        "supporting_context": supporting_context(entries, resolved, args.lookback),
+        "context_expanded_upward": context_expanded_upward,
+        "supporting_context": context,
         "recent_user_messages": recent_user_messages(entries, args.recent),
     }
 
@@ -518,6 +678,7 @@ def render_text(result: dict[str, object]) -> str:
         f"- updated: {result['updated_at_local']}",
         f"- source: {result['resolved_source']}",
         f"- needs more context: {result['needs_more_context']}",
+        f"- context expanded upward: {result.get('context_expanded_upward', False)}",
         "",
         "Last conversation content:",
         f"[{result['last_conversation_role']}] {result['last_conversation_content'] or '(empty)'}",
@@ -528,6 +689,9 @@ def render_text(result: dict[str, object]) -> str:
         "Resolved request:",
         str(result["resolved_request"] or "(empty)"),
     ]
+    decision_basis = str(result.get("decision_basis_message") or "")
+    if decision_basis:
+        lines.extend(["", "Decision basis message:", decision_basis])
     context = result.get("supporting_context") or []
     if context:
         lines.append("")

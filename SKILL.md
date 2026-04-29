@@ -32,6 +32,9 @@ Read these fields:
 - `last_conversation_content`: the last meaningful conversation item
 - `resolved_source`: whether the request came from a user message, assistant suggestion, supplement, or fallback
 - `needs_more_context`: whether the recovered text still looks ambiguous
-- `supporting_context`: nearby timeline entries
+- `ambiguity_hints`: why the recovered text may still depend on earlier context
+- `supporting_context`: nearby timeline entries, expanded upward when ambiguous references need older context
+- `context_expanded_upward`: whether the supporting context had to walk further upward for explanation
+- `decision_basis_message`: earlier user requirement that defines a selection or comparison basis
 
 If the user wants execution, briefly state the recovered request and continue working immediately.

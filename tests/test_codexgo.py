@@ -59,20 +59,23 @@ def make_codex_home(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) 
     return codex_home
 
 
-def run_codexgo(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) -> dict:
+def run_codexgo(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]], extra_args: list[str] | None = None) -> dict:
     codex_home = make_codex_home(tmp_path, cwd, messages)
+    command = [
+        sys.executable,
+        str(SCRIPT),
+        "--cwd",
+        str(cwd),
+        "--codex-home",
+        str(codex_home),
+        "--format",
+        "json",
+        "--no-skip-current",
+    ]
+    if extra_args:
+        command.extend(extra_args)
     completed = subprocess.run(
-        [
-            sys.executable,
-            str(SCRIPT),
-            "--cwd",
-            str(cwd),
-            "--codex-home",
-            str(codex_home),
-            "--format",
-            "json",
-            "--no-skip-current",
-        ],
+        command,
         text=True,
         encoding="utf-8",
         capture_output=True,
@@ -164,3 +167,77 @@ def test_supplement_merges_previous_context() -> None:
     assert "I will parse the local thread database." in result["resolved_request"]
     assert "补充：输出 json" in result["resolved_request"]
     assert result["resolved_source"] == "supplement_plus_previous_assistant"
+
+
+def test_reference_expands_supporting_context_upward() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "三端都要覆盖：CLI、README、测试。"),
+                ("assistant", "我会按三端推进。"),
+                ("user", "先做 CLI。"),
+                ("assistant", "CLI 已经完成。"),
+                ("user", "按这个方案继续"),
+            ],
+            ["--lookback", "1"],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["needs_more_context"] is True
+    assert result["context_expanded_upward"] is True
+    assert result["supporting_context"][0]["text"] == "三端都要覆盖：CLI、README、测试。"
+
+
+def test_agreement_merges_decision_basis_for_ambiguous_assistant_suggestion() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "对比三种方案：SQLite、本地 JSON、远程 API，选择一个最小实现。"),
+                ("assistant", "建议按这个方案：用 SQLite 做只读恢复。"),
+                ("user", "ok"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["decision_basis_message"] == "对比三种方案：SQLite、本地 JSON、远程 API，选择一个最小实现。"
+    assert "Current execution slice:" in result["resolved_request"]
+    assert "用 SQLite 做只读恢复" in result["resolved_request"]
+    assert result["resolved_source"] == "assistant_suggestion_with_decision_basis"
+
+
+def test_supplement_merges_decision_basis_for_previous_assistant_context() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "选择三端输出：text、json、supporting_context，保持小工具实现。"),
+                ("assistant", "这个方案可以，先补 json 输出。"),
+                ("user", "补充：同时更新 README"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["decision_basis_message"] == "选择三端输出：text、json、supporting_context，保持小工具实现。"
+    assert "Current execution slice:" in result["resolved_request"]
+    assert "补充：同时更新 README" in result["resolved_request"]
+    assert result["resolved_source"] == "supplement_plus_decision_basis_and_previous_assistant"

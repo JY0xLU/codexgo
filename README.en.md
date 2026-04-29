@@ -35,7 +35,7 @@
 | --- | --- |
 | Small | One Python script, one skill file, standard library only |
 | Safe | Local-only, read-only, no uploads, no database writes |
-| Context-aware | Skips low-signal replies like `continue`, `ok`, and `yes` |
+| Context-aware | Skips low-signal replies and expands context for `三端`, `this plan`, and similar references |
 | Scriptable | Supports both plain text and JSON output |
 | Hackable | Compact logic that is easy to read, study, and modify |
 
@@ -67,7 +67,11 @@ codexgo
 | `continue` / `go on` / `继续` | Walks back to the previous real request |
 | `ok` / `yes` / `好的` | Recovers the assistant plan you agreed to |
 | `补充：...` | Merges the supplement with the previous context |
+| `三端` / `this plan` / `按上面` | Expands supporting context upward automatically |
+| Selection or comparison prompts | Emits `decision_basis_message` as the decision basis |
 | Automation use cases | Emits JSON for downstream tools |
+
+JSON output also includes `context_expanded_upward`, which tells callers whether codexgo had to walk further upward to resolve an ambiguous reference.
 
 ## CLI
 
