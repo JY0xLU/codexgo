@@ -59,6 +59,30 @@ def make_codex_home(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) 
     return codex_home
 
 
+def make_codex_home_with_threads(
+    tmp_path: Path, threads: list[tuple[str, Path, int, list[tuple[str, str]]]]
+) -> Path:
+    codex_home = tmp_path / "codex-home"
+    codex_home.mkdir()
+    db_path = codex_home / "state_5.sqlite"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            "CREATE TABLE threads (id TEXT, cwd TEXT, title TEXT, first_user_message TEXT, updated_at INTEGER, rollout_path TEXT)"
+        )
+        for index, (thread_id, cwd, updated_at, messages) in enumerate(threads, start=1):
+            rollout = tmp_path / f"rollout-{index}.jsonl"
+            write_rollout(rollout, messages)
+            conn.execute(
+                "INSERT INTO threads VALUES (?, ?, ?, ?, ?, ?)",
+                (thread_id, str(cwd), "fixture", messages[0][1], updated_at, str(rollout)),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    return codex_home
+
+
 def run_codexgo(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]], extra_args: list[str] | None = None) -> dict:
     codex_home = make_codex_home(tmp_path, cwd, messages)
     command = [
@@ -100,6 +124,71 @@ def test_recovers_last_normal_user_request() -> None:
 
     assert result["resolved_request"] == "implement the parser"
     assert result["resolved_source"] == "user_message"
+
+
+def test_auto_scope_recovers_parent_workspace_thread_from_child_directory() -> None:
+    tmp_path = make_case_dir()
+    try:
+        workspace = tmp_path / "workspace"
+        child = workspace / "project"
+        child.mkdir(parents=True)
+        codex_home = make_codex_home(
+            tmp_path,
+            workspace,
+            [("user", "recover the parent workspace task"), ("assistant", "I will do that.")],
+        )
+        command = [
+            sys.executable,
+            str(SCRIPT),
+            "--cwd",
+            str(child),
+            "--codex-home",
+            str(codex_home),
+            "--format",
+            "json",
+            "--no-skip-current",
+        ]
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
+        result = json.loads(completed.stdout)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["scope_used"] == "tree"
+    assert result["matched_cwd"] == str(child)
+    assert result["resolved_request"] == "recover the parent workspace task"
+
+
+def test_tree_scope_skips_current_child_thread_by_default() -> None:
+    tmp_path = make_case_dir()
+    try:
+        workspace = tmp_path / "workspace"
+        child = workspace / "project"
+        child.mkdir(parents=True)
+        codex_home = make_codex_home_with_threads(
+            tmp_path,
+            [
+                ("current", child, 200, [("user", "codexgo"), ("assistant", "Recovering now.")]),
+                ("previous", workspace, 100, [("user", "resume the interrupted build"), ("assistant", "On it.")]),
+            ],
+        )
+        command = [
+            sys.executable,
+            str(SCRIPT),
+            "--cwd",
+            str(child),
+            "--codex-home",
+            str(codex_home),
+            "--format",
+            "json",
+        ]
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
+        result = json.loads(completed.stdout)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["scope_used"] == "tree"
+    assert result["resolved_request"] == "resume the interrupted build"
+    assert result["thread_id"] == "previous"
 
 
 def test_codexgo_recovers_previous_real_request() -> None:

@@ -286,13 +286,14 @@ def thread_matches(label: str, thread_cwd: str, target: str) -> bool:
     left = norm_path(thread_cwd)
     right = norm_path(target)
     if label == "tree":
-        return left == right or left.startswith(right.rstrip("\\/") + os.sep)
+        left_prefix = left.rstrip("\\/") + os.sep
+        right_prefix = right.rstrip("\\/") + os.sep
+        return left == right or left.startswith(right_prefix) or right.startswith(left_prefix)
     return left == right
 
 
 def locate_thread(codex_home: Path, cwd: str, scope: str, skip_current: bool) -> tuple[str, str, Thread]:
     db_path = find_state_db(codex_home)
-    normalized_cwd = norm_path(cwd)
     with sqlite3.connect(db_path) as conn:
         threads = read_threads(conn)
     for label, target in target_paths(cwd, scope):
@@ -301,7 +302,7 @@ def locate_thread(codex_home: Path, cwd: str, scope: str, skip_current: bool) ->
             for thread in threads
             if thread.rollout_path and Path(thread.rollout_path).exists() and thread_matches(label, thread.cwd, target)
         ]
-        if skip_current and label != "tree" and norm_path(target) == normalized_cwd and matches:
+        if skip_current and matches:
             matches = matches[1:]
         if matches:
             return label, target, matches[0]
