@@ -65,12 +65,6 @@ codexgo
 
 如果你刚从一个断掉的线程里爬出来，这通常就是第一句要说的话。别解释第二遍，让小工具先翻翻旧账。
 
-## 快速演示
-
-<p align="center">
-  <img src="assets/codexgo-demo.gif" alt="codexgo demo" width="100%">
-</p>
-
 ## 使用图
 
 <p align="center">

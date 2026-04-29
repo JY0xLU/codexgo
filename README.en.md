@@ -65,12 +65,6 @@ codexgo
 
 If you just crawled out of a broken thread, this is usually the first thing to say. No need to explain the whole task twice.
 
-## Quick Demo
-
-<p align="center">
-  <img src="assets/codexgo-demo.gif" alt="codexgo demo" width="100%">
-</p>
-
 ## Usage Flow
 
 <p align="center">
