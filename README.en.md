@@ -41,10 +41,18 @@
 
 ## Install in 30 seconds
 
-Clone this repository into your Codex skills directory:
+macOS / Linux:
 
 ```bash
+mkdir -p ~/.codex/skills
 git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
+```
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.codex\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$HOME\.codex\skills\codexgo"
 ```
 
 Restart Codex, then type this at the beginning of a fresh session:
@@ -52,6 +60,12 @@ Restart Codex, then type this at the beginning of a fresh session:
 ```text
 codexgo
 ```
+
+## Quick Demo
+
+<p align="center">
+  <img src="assets/codexgo-demo.gif" alt="codexgo demo" width="100%">
+</p>
 
 ## Usage Flow
 
@@ -72,6 +86,40 @@ codexgo
 | Automation use cases | Emits JSON for downstream tools |
 
 JSON output also includes `context_expanded_upward`, which tells callers whether codexgo had to walk further upward to resolve an ambiguous reference.
+
+## Example Output
+
+Plain text output:
+
+```text
+Recovered Codex request
+- matched workspace: /path/to/project
+- source: user_message
+- needs more context: False
+- context expanded upward: False
+
+Resolved request:
+Finish the README polish and run the tests.
+```
+
+JSON output for automation:
+
+```json
+{
+  "status": "ok",
+  "resolved_request": "Finish the README polish and run the tests.",
+  "resolved_source": "user_message",
+  "decision_basis_message": "",
+  "context_expanded_upward": false
+}
+```
+
+## Safety and Privacy
+
+- Reads only local `~/.codex/state_*.sqlite` and rollout JSONL files.
+- Does not upload conversations, call the network, or write to the Codex database.
+- Does not modify your project files unless you pass its output into another automation.
+- Returns an error when recovery fails instead of fabricating a request.
 
 ## CLI
 
@@ -98,12 +146,17 @@ Common options:
 - Codex local state in `~/.codex`
 - No third-party Python packages
 
+## Limitations
+
+- Codex local state must exist; there is nothing to recover without history.
+- If Codex changes its SQLite schema or rollout format, the parser may need an update.
+- Ambiguous-reference recovery is rule-based, not LLM semantic reasoning.
+- Recovery works best from the same workspace or Git repository.
+
 ## Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date">
-  </a>
+  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">View Star History</a>
 </p>
 
 ## Development

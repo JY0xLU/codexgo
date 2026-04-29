@@ -41,10 +41,18 @@
 
 ## 30 秒安装
 
-把仓库 clone 到 Codex 的 skills 目录：
+macOS / Linux：
 
 ```bash
+mkdir -p ~/.codex/skills
 git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
+```
+
+Windows PowerShell：
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.codex\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$HOME\.codex\skills\codexgo"
 ```
 
 重启 Codex，然后在新会话开头输入：
@@ -52,6 +60,12 @@ git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
 ```text
 codexgo
 ```
+
+## 快速演示
+
+<p align="center">
+  <img src="assets/codexgo-demo.gif" alt="codexgo demo" width="100%">
+</p>
 
 ## 使用图
 
@@ -72,6 +86,40 @@ codexgo
 | 需要接入脚本 | 输出 JSON，交给其他工具继续处理 |
 
 JSON 输出里会包含 `context_expanded_upward`，用于标记是否为了消解模糊引用而向更早的对话扩展了上下文。
+
+## 输出示例
+
+普通文本输出：
+
+```text
+Recovered Codex request
+- matched workspace: /path/to/project
+- source: user_message
+- needs more context: False
+- context expanded upward: False
+
+Resolved request:
+Finish the README polish and run the tests.
+```
+
+JSON 输出适合脚本接入：
+
+```json
+{
+  "status": "ok",
+  "resolved_request": "Finish the README polish and run the tests.",
+  "resolved_source": "user_message",
+  "decision_basis_message": "",
+  "context_expanded_upward": false
+}
+```
+
+## 安全和隐私
+
+- 只读取本机 `~/.codex/state_*.sqlite` 和 rollout JSONL。
+- 不上传对话、不调用网络、不写入 Codex 数据库。
+- 不修改当前项目文件，除非你把输出交给其他自动化脚本继续执行。
+- 出错时会返回错误信息，不会伪造恢复结果。
 
 ## 命令行
 
@@ -98,12 +146,17 @@ python scripts/codexgo.py --cwd . --format json
 - 本地存在 Codex 状态目录 `~/.codex`
 - 不需要第三方 Python 依赖
 
+## 限制
+
+- Codex 本地状态目录必须存在，否则没有历史记录可恢复。
+- 如果 Codex 未来改动 SQLite schema 或 rollout 格式，可能需要更新解析逻辑。
+- 模糊引用追溯是规则型逻辑，不是 LLM 语义推理。
+- 在同一工作区或同一 Git 仓库中恢复效果最好。
+
 ## Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date">
-  </a>
+  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">查看 Star History</a>
 </p>
 
 ## 开发
