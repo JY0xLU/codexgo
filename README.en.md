@@ -135,7 +135,7 @@ Its job is to turn "human continuation noise" back into something Codex can actu
 | Selection or comparison prompts | Emits `decision_basis_message` as the decision basis |
 | Automation use cases | Emits JSON for downstream tools |
 
-JSON output also includes `context_expanded_upward`, which tells callers whether codexgo had to walk further upward to resolve an ambiguous reference.
+JSON output also includes `context_expanded_upward`, which tells callers whether codexgo had to walk further upward to resolve an ambiguous reference. `matched_cwd` is the search target that matched; `thread_cwd` is the recovered thread's actual workspace.
 
 ## Example Output
 
@@ -143,7 +143,8 @@ Plain text output:
 
 ```text
 Recovered Codex request
-- matched workspace: /path/to/project
+- matched search target: /path/to/project
+- thread workspace: /path/to/project
 - source: user_message
 - needs more context: False
 - context expanded upward: False
@@ -157,6 +158,10 @@ JSON output for automation:
 ```json
 {
   "status": "ok",
+  "current_cwd": "/path/to/current/project",
+  "scope_used": "repo",
+  "matched_cwd": "/path/to/current/project",
+  "thread_cwd": "/path/to/current/project",
   "resolved_request": "Finish the README polish and run the tests.",
   "resolved_source": "user_message",
   "decision_basis_message": "",
@@ -191,6 +196,8 @@ Common options:
 --lookback <n>       Nearby timeline entries to include as context. Defaults to 6.
 --format <fmt>       text or json. Defaults to text.
 ```
+
+`auto` searches only the current directory and the Git repository root. It does not silently fall back to parent/child tree matching. Use `--scope tree` explicitly when you want that wider fallback, because it can recover an unrelated thread from a nearby parent directory.
 
 ## Requirements
 

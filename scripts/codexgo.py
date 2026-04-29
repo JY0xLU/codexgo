@@ -335,7 +335,6 @@ def target_paths(cwd: str, scope: str) -> list[tuple[str, str]]:
     targets = [("exact", cwd)]
     if root:
         targets.append(("repo", root))
-    targets.append(("tree", cwd))
     deduped: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
     for label, path in targets:
@@ -770,6 +769,7 @@ def build_result(args: argparse.Namespace) -> dict[str, object]:
         "current_cwd": cwd,
         "scope_used": scope,
         "matched_cwd": matched_cwd,
+        "thread_cwd": thread.cwd,
         "thread_id": thread.id,
         "thread_title": thread.title,
         "updated_at_local": local_time(thread.updated_at),
@@ -793,7 +793,8 @@ def build_result(args: argparse.Namespace) -> dict[str, object]:
 def render_text(result: dict[str, object]) -> str:
     lines = [
         "Recovered Codex request",
-        f"- matched workspace: {result['matched_cwd']}",
+        f"- matched search target: {result['matched_cwd']}",
+        f"- thread workspace: {result['thread_cwd']}",
         f"- thread: {result['thread_title']} ({result['thread_id']})",
         f"- updated: {result['updated_at_local']}",
         f"- source: {result['resolved_source']}",

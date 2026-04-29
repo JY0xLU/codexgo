@@ -126,7 +126,7 @@ def test_recovers_last_normal_user_request() -> None:
     assert result["resolved_source"] == "user_message"
 
 
-def test_auto_scope_recovers_parent_workspace_thread_from_child_directory() -> None:
+def test_auto_scope_does_not_recover_parent_workspace_thread_from_child_directory() -> None:
     tmp_path = make_case_dir()
     try:
         workspace = tmp_path / "workspace"
@@ -148,13 +148,23 @@ def test_auto_scope_recovers_parent_workspace_thread_from_child_directory() -> N
             "json",
             "--no-skip-current",
         ]
-        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
-        result = json.loads(completed.stdout)
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=False)
+        explicit_tree = subprocess.run(
+            command + ["--scope", "tree"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+        )
+        result = json.loads(explicit_tree.stdout)
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
+    assert completed.returncode == 1
+    assert "No previous Codex thread found" in completed.stdout
     assert result["scope_used"] == "tree"
     assert result["matched_cwd"] == str(child)
+    assert result["thread_cwd"] == str(workspace)
     assert result["resolved_request"] == "recover the parent workspace task"
 
 
@@ -180,6 +190,8 @@ def test_tree_scope_skips_current_child_thread_by_default() -> None:
             str(codex_home),
             "--format",
             "json",
+            "--scope",
+            "tree",
         ]
         completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
         result = json.loads(completed.stdout)
@@ -189,6 +201,7 @@ def test_tree_scope_skips_current_child_thread_by_default() -> None:
     assert result["scope_used"] == "tree"
     assert result["resolved_request"] == "resume the interrupted build"
     assert result["thread_id"] == "previous"
+    assert result["thread_cwd"] == str(workspace)
 
 
 def test_skips_archived_thread_without_recoverable_user_content() -> None:
@@ -224,6 +237,8 @@ def test_skips_archived_thread_without_recoverable_user_content() -> None:
             str(codex_home),
             "--format",
             "json",
+            "--scope",
+            "tree",
         ]
         completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
         result = json.loads(completed.stdout)
