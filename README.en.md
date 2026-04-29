@@ -33,20 +33,20 @@ No cloud memory. No magic. No database writes. Just a tiny recovery buddy rummag
 
 ## The Problem
 
-Codex periodically compacts background context. When that compact request is interrupted, you may see an error like this:
+To keep long sessions manageable, Codex occasionally compacts background context. If that request is interrupted mid-stream, the failure can look like this:
 
 ```text
 Error running remote compact task: stream disconnected before completion:
 error sending request for url (https://chatgpt.com/backend-api/codex/responses/compact)
 ```
 
-At that point the original session may be impossible to continue, but the task context is still present in local Codex records. `codexgo` recovers that context for you.
+At that point the original thread may no longer be usable, but the conversation trail, workspace path, and task clues are still stored in local Codex records. `codexgo` reads those records and reconstructs the request you should continue from.
 
 ## The Fix
 
-After a compact crash:
+After a compact interruption:
 
-1. Stay in the original workspace. The broken session does not need heroic CPR.
+1. Stay in the same project workspace. Do not spend time reviving the broken thread.
 2. Open a fresh Codex session.
 3. Type `codexgo`.
 
@@ -54,15 +54,15 @@ After a compact crash:
 codexgo
 ```
 
-It recovers the last actionable request from the previous session so you can continue immediately. No manual recall, no re-explaining the task, no rebuilding context from scratch.
+It extracts the last actionable request from the previous conversation so the new thread can continue the same task. No manual recall, no re-explaining the requirement, no rebuilding context from scratch.
 
 ## How It Works
 
-1. Reads the local Codex SQLite state database.
-2. Finds the previous session thread for the current workspace.
-3. Parses the conversation timeline and identifies the last real request.
-4. Skips low-signal messages such as `ok` and `continue`.
-5. Expands context upward for fuzzy references such as "that approach", "the previous plan", and "continue in that direction".
+1. Opens the local Codex SQLite state database.
+2. Matches a recent historical thread for the current workspace.
+3. Reads the rollout timeline, restores message order, and identifies the real request.
+4. Filters confirmation or placeholder messages such as `ok`, `continue`, and `继续`.
+5. Walks upward for referenced context when the user says things like "that plan" or "do what we discussed".
 
 ## Highlights
 
