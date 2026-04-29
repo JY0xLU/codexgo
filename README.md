@@ -1,8 +1,8 @@
 # continue
 
-中文 | [English](#english)
+[English](README.en.md)
 
-`continue` 是一个很小的 Codex 恢复工具。它适合在 Codex 因为 compaction、崩溃或上下文丢失而中断后，帮你从本地 Codex 会话记录里找回上一轮真正要继续的任务。
+`continue` 是一个很小的 Codex 恢复工具。Codex 因为 compaction、崩溃或上下文丢失而中断后，它可以从本地 Codex 会话记录里找回上一轮真正要继续的任务。
 
 它只读本地文件，不上传对话，不修改 Codex 数据库。
 
@@ -62,75 +62,6 @@ python scripts/continue.py --cwd . --format json
 ## 开发
 
 运行测试：
-
-```bash
-python -m pytest tests/test_continue.py -p no:cacheprovider
-```
-
-## English
-
-[中文](#continue) | English
-
-`continue` is a tiny recovery tool for Codex. It helps recover the previous actionable task after a Codex session is interrupted by compaction failure, crash, or lost context.
-
-It is local-only and read-only. It does not upload conversations and does not modify the Codex state database.
-
-## When to Use It
-
-After a Codex session breaks, open a fresh Codex session in the same project directory and type:
-
-```text
-continue
-```
-
-The skill reads the local Codex state database, finds the previous thread for the current workspace, parses the rollout timeline, and returns the request that most likely needs to be continued.
-
-## What It Handles
-
-- Last user message is a real task: returns that task.
-- Last user message is `continue`, `go on`, `继续`, or similar: walks back to the previous real request.
-- Last user message is `ok`, `yes`, `好的`, or similar: recovers the assistant suggestion you agreed to.
-- Last user message is a supplement such as `补充：...`: merges it with the previous context.
-- Output can be plain text or JSON.
-
-## Install
-
-Clone this repository into your Codex skills directory:
-
-```bash
-git clone https://github.com/JY0xLU/continue.git ~/.codex/skills/continue
-```
-
-Restart Codex, then type `continue` at the beginning of a fresh session.
-
-## CLI
-
-```bash
-python scripts/continue.py --cwd . --format text
-python scripts/continue.py --cwd . --format json
-```
-
-Options:
-
-```text
---cwd <path>         Workspace path. Defaults to the current directory.
---codex-home <path>  Codex data directory. Defaults to CODEX_HOME or ~/.codex.
---scope <mode>       Search mode: auto, exact, repo, or tree. Defaults to auto.
---skip-current       Skip the current thread. Enabled by default.
---recent <n>         Number of recent user messages to include. Defaults to 3.
---lookback <n>       Nearby timeline entries to include as context. Defaults to 6.
---format <fmt>       text or json. Defaults to text.
-```
-
-## Requirements
-
-- Python 3.10+
-- Codex local state in `~/.codex`
-- No third-party Python packages
-
-## Development
-
-Run tests:
 
 ```bash
 python -m pytest tests/test_continue.py -p no:cacheprovider
