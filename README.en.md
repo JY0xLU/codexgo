@@ -216,13 +216,14 @@ It follows clues, but it does not pretend to be psychic. If it cannot recover th
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=JY0xLU%2Fcodexgo&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
- </picture>
-</a>
+<p align="center">
+  <a href="https://www.star-history.com/?repos=JY0xLU%2Fcodexgo&type=date&legend=top-left">
+    <img alt="View live Star History" src="https://img.shields.io/badge/view-live%20star%20history-FF6B35?style=for-the-badge">
+  </a>
+  <a href="https://github.com/JY0xLU/codexgo/stargazers">
+    <img alt="GitHub stars" src="https://img.shields.io/github/stars/JY0xLU/codexgo?style=for-the-badge&logo=github">
+  </a>
+</p>
 
 ## Development
 
