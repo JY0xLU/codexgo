@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/codexgo-logo.svg" alt="codexgo logo" width="132">
+  <img src="assets/codexgo-logo.png" alt="codexgo logo" width="132">
 </p>
 
 <h1 align="center">codexgo</h1>
