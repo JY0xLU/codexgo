@@ -1,8 +1,8 @@
-# continue
+# codexgo
 
 [English](README.en.md)
 
-`continue` 是一个很小的 Codex 恢复工具。Codex 因为 compaction、崩溃或上下文丢失而中断后，它可以从本地 Codex 会话记录里找回上一轮真正要继续的任务。
+`codexgo` 是一个很小的 Codex 恢复工具。Codex 因为 compaction、崩溃或上下文丢失而中断后，它可以从本地 Codex 会话记录里找回上一轮真正要继续的任务。
 
 它只读本地文件，不上传对话，不修改 Codex 数据库。
 
@@ -11,7 +11,7 @@
 当 Codex 会话断掉后，在同一个项目目录里重新打开 Codex，然后输入：
 
 ```text
-continue
+codexgo
 ```
 
 这个 skill 会读取本地 Codex 状态数据库，找到当前工作区对应的上一个 thread，解析 rollout 记录，然后输出最可能需要继续执行的请求。
@@ -29,16 +29,16 @@ continue
 把仓库 clone 到 Codex 的 skills 目录：
 
 ```bash
-git clone https://github.com/JY0xLU/continue.git ~/.codex/skills/continue
+git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
 ```
 
-然后重启 Codex。之后在新会话开头输入 `continue` 即可。
+然后重启 Codex。之后在新会话开头输入 `codexgo` 即可。
 
 ## 命令行
 
 ```bash
-python scripts/continue.py --cwd . --format text
-python scripts/continue.py --cwd . --format json
+python scripts/codexgo.py --cwd . --format text
+python scripts/codexgo.py --cwd . --format json
 ```
 
 参数：
@@ -64,5 +64,5 @@ python scripts/continue.py --cwd . --format json
 运行测试：
 
 ```bash
-python -m pytest tests/test_continue.py -p no:cacheprovider
+python -m pytest tests/test_codexgo.py -p no:cacheprovider
 ```

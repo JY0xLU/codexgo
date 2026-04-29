@@ -1,8 +1,8 @@
-# continue
+# codexgo
 
 [中文](README.md)
 
-`continue` is a tiny recovery tool for Codex. It helps recover the previous actionable task after a Codex session is interrupted by compaction failure, crash, or lost context.
+`codexgo` is a tiny recovery tool for Codex. It helps recover the previous actionable task after a Codex session is interrupted by compaction failure, crash, or lost context.
 
 It is local-only and read-only. It does not upload conversations and does not modify the Codex state database.
 
@@ -11,7 +11,7 @@ It is local-only and read-only. It does not upload conversations and does not mo
 After a Codex session breaks, open a fresh Codex session in the same project directory and type:
 
 ```text
-continue
+codexgo
 ```
 
 The skill reads the local Codex state database, finds the previous thread for the current workspace, parses the rollout timeline, and returns the request that most likely needs to be continued.
@@ -29,16 +29,16 @@ The skill reads the local Codex state database, finds the previous thread for th
 Clone this repository into your Codex skills directory:
 
 ```bash
-git clone https://github.com/JY0xLU/continue.git ~/.codex/skills/continue
+git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
 ```
 
-Restart Codex, then type `continue` at the beginning of a fresh session.
+Restart Codex, then type `codexgo` at the beginning of a fresh session.
 
 ## CLI
 
 ```bash
-python scripts/continue.py --cwd . --format text
-python scripts/continue.py --cwd . --format json
+python scripts/codexgo.py --cwd . --format text
+python scripts/codexgo.py --cwd . --format json
 ```
 
 Options:
@@ -64,5 +64,5 @@ Options:
 Run tests:
 
 ```bash
-python -m pytest tests/test_continue.py -p no:cacheprovider
+python -m pytest tests/test_codexgo.py -p no:cacheprovider
 ```

@@ -545,7 +545,7 @@ def main() -> int:
         if args.format == "json":
             print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2))
         else:
-            print(f"continue failed: {exc}", file=sys.stderr)
+            print(f"codexgo failed: {exc}", file=sys.stderr)
         return 1
     if args.format == "json":
         print(json.dumps(result, ensure_ascii=False, indent=2))

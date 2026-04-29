@@ -1,9 +1,9 @@
 ---
-name: "continue"
-description: "Recover the previous actionable Codex request for the current workspace at the start of a fresh session after compaction, crash, or context loss. Use when the user types `continue` as an explicit skill request, asks to recover the previous Codex session, or asks to continue after a compact/crash break."
+name: "codexgo"
+description: "Recover the previous actionable Codex request for the current workspace at the start of a fresh session after compaction, crash, or context loss. Use when the user types `codexgo` as an explicit skill request, asks to recover the previous Codex session, or asks to continue after a compact/crash break."
 ---
 
-# Continue
+# codexgo
 
 Use this skill only when the user explicitly wants to recover the previous Codex session for the current workspace, usually at the start of a fresh session after compaction or crash.
 
@@ -14,16 +14,16 @@ Do not auto-trigger this skill later in a normal active conversation from vague 
 Run:
 
 ```bash
-python scripts/continue.py --cwd "$PWD" --format json
+python scripts/codexgo.py --cwd "$PWD" --format json
 ```
 
 On Windows PowerShell, use the current working directory from the shell context:
 
 ```powershell
-py scripts/continue.py --cwd . --format json
+py scripts/codexgo.py --cwd . --format json
 ```
 
-## Continue Work
+## Resume Work
 
 Read these fields:
 

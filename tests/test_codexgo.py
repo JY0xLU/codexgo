@@ -8,7 +8,7 @@ from uuid import uuid4
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "continue.py"
+SCRIPT = ROOT / "scripts" / "codexgo.py"
 TEST_WORK = ROOT / ".test-work"
 
 
@@ -59,7 +59,7 @@ def make_codex_home(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) 
     return codex_home
 
 
-def run_continue(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) -> dict:
+def run_codexgo(tmp_path: Path, cwd: Path, messages: list[tuple[str, str]]) -> dict:
     codex_home = make_codex_home(tmp_path, cwd, messages)
     completed = subprocess.run(
         [
@@ -87,7 +87,7 @@ def test_recovers_last_normal_user_request() -> None:
         cwd = tmp_path / "work"
         cwd.mkdir()
 
-        result = run_continue(
+        result = run_codexgo(
             tmp_path,
             cwd,
             [("user", "implement the parser"), ("assistant", "I will do that.")],
@@ -99,13 +99,13 @@ def test_recovers_last_normal_user_request() -> None:
     assert result["resolved_source"] == "user_message"
 
 
-def test_continue_recovers_previous_real_request() -> None:
+def test_codexgo_recovers_previous_real_request() -> None:
     tmp_path = make_case_dir()
     try:
         cwd = tmp_path / "work"
         cwd.mkdir()
 
-        result = run_continue(
+        result = run_codexgo(
             tmp_path,
             cwd,
             [
@@ -127,7 +127,7 @@ def test_agreement_recovers_assistant_suggestion() -> None:
         cwd = tmp_path / "work"
         cwd.mkdir()
 
-        result = run_continue(
+        result = run_codexgo(
             tmp_path,
             cwd,
             [
@@ -149,7 +149,7 @@ def test_supplement_merges_previous_context() -> None:
         cwd = tmp_path / "work"
         cwd.mkdir()
 
-        result = run_continue(
+        result = run_codexgo(
             tmp_path,
             cwd,
             [
