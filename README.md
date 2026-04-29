@@ -58,6 +58,68 @@ codexgo
 
 它不会假装自己懂一切。找不到可恢复内容时，它会老实报错。
 
+## 黑匣子里读什么
+
+`codexgo` 只做本地只读分析。它会打开 Codex 数据目录里的状态索引和会话流水文件，把它们拼成一条可以续接的线索链：
+
+| 线索 | 用途 |
+| --- | --- |
+| `state_*.sqlite` | 找到最近的 Codex thread、工作区路径和更新时间 |
+| rollout JSONL | 读取用户消息、助手回复、工具事件和中断前后的时间线 |
+| 当前 `--cwd` | 判断应该优先恢复哪个工作区或 Git 仓库里的线程 |
+| 最近用户消息 | 区分真正任务、短回复、补充说明和触发词 |
+| 助手上一条建议 | 当用户只回复 `ok` / `好的` 时，找回刚才被同意的方案 |
+
+默认会跳过当前 thread，避免你在新线程里输入 `codexgo` 后，它又把“你刚刚输入 codexgo”当成要恢复的任务。这个小坑很滑，已经踩过，已经填上。
+
+## 搜索范围怎么选
+
+工作区匹配不是只看一个绝对路径。`codexgo` 支持几种范围，默认 `auto` 会尽量选一个安全的范围：
+
+| 范围 | 适合场景 |
+| --- | --- |
+| `exact` | 只看完全相同的工作区路径 |
+| `repo` | 在同一个 Git 仓库内找上一条可恢复线程 |
+| `tree` | 当前目录和父/子目录之间都可能有关联时使用 |
+| `auto` | 先按当前上下文自动尝试，不够再放宽 |
+
+这对 Codex App 很重要：你可能在项目根目录开过会话，也可能在子目录里重新打开新线程。`codexgo` 会尽量把这两种情况接起来，而不是死守一个路径。
+
+## 它怎么避开噪声
+
+断线前最后一句经常不是任务本身，而是人类很自然的短回复。`codexgo` 会把这些看成路标，而不是终点：
+
+| 类型 | 例子 | 处理方式 |
+| --- | --- | --- |
+| 继续触发 | `continue`、`go on`、`继续`、`jixu` | 向前找上一条真实任务 |
+| 同意回复 | `ok`、`yes`、`好的`、`可以` | 找回上一条助手建议 |
+| 技能触发 | `codexgo`、`golast` | 不把触发词当任务 |
+| 中断标记 | `<turn_aborted>` | 忽略 |
+| 空壳线程 | 只有系统提示、AGENTS 或触发词 | 跳过，继续找更早的可恢复线程 |
+
+它也会识别一些“需要往上看”的表达，比如“继续刚才那个思路”“按上一轮决定走”“如果我理解错了就调整”。这类话单独看不够完整，所以 JSON 里会用 `context_expanded_upward` 标记是否向前补了上下文。
+
+## 续航卡字段
+
+JSON 输出适合接脚本，也适合看它到底为什么这么判断：
+
+| 字段 | 含义 |
+| --- | --- |
+| `status` | `ok` 或错误状态 |
+| `current_cwd` | 你这次运行时传入的工作区 |
+| `scope_used` | 实际使用的搜索范围 |
+| `matched_cwd` | 命中的历史线程工作区 |
+| `thread_id` | 命中的 Codex thread |
+| `literal_last_user_message` | 时间线上最后一条用户消息，保留原貌 |
+| `resolved_request` | 最终建议交给新线程继续执行的任务 |
+| `resolved_source` | 结果来自用户消息、助手方案、补充合并等哪类来源 |
+| `decision_basis_message` | 如果用户在同意一个方案，这里放决策依据 |
+| `supporting_context` | 为了消解模糊引用而附带的附近上下文 |
+| `recent_user_messages` | 最近几条用户消息，方便人工确认 |
+| `context_expanded_upward` | 是否为了补足语义向更早的对话回看 |
+
+普通文本输出更适合人直接看，JSON 输出更适合自动化接力。
+
 ## 放到 Codex 里
 
 `codexgo` 是 Codex skill，不是 pip 包。把仓库放进 Codex 的 `skills/codexgo` 目录，再重启 Codex。
@@ -121,10 +183,16 @@ JSON 输出示例：
 ```json
 {
   "status": "ok",
+  "scope_used": "tree",
+  "matched_cwd": "/path/to/project",
   "resolved_request": "Finish the README polish and run the tests.",
   "resolved_source": "user_message",
   "decision_basis_message": "",
-  "context_expanded_upward": false
+  "context_expanded_upward": false,
+  "recent_user_messages": [
+    "ok",
+    "继续刚才那个思路"
+  ]
 }
 ```
 
