@@ -21,8 +21,8 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="Dependencies" src="https://img.shields.io/badge/deps-zero-10B981?style=flat-square">
   <img alt="Local only" src="https://img.shields.io/badge/privacy-local--only-0F766E?style=flat-square">
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/JY0xLU/codexgo?style=flat-square"></a>
-  <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo?style=flat-square">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square"></a>
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo/main?style=flat-square">
 </p>
 
 ## What It Is
