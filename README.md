@@ -155,9 +155,13 @@ python scripts/codexgo.py --cwd . --format json
 
 ## Star History
 
-<p align="center">
-  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">查看 Star History</a>
-</p>
+<a href="https://www.star-history.com/#JY0xLU/codexgo&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date" />
+  </picture>
+</a>
 
 ## 开发
 
