@@ -191,6 +191,49 @@ def test_tree_scope_skips_current_child_thread_by_default() -> None:
     assert result["thread_id"] == "previous"
 
 
+def test_skips_archived_thread_without_recoverable_user_content() -> None:
+    tmp_path = make_case_dir()
+    try:
+        workspace = tmp_path / "workspace"
+        child = workspace / "project"
+        child.mkdir(parents=True)
+        codex_home = make_codex_home_with_threads(
+            tmp_path,
+            [
+                ("current", child, 300, [("user", "codexgo"), ("assistant", "Recovering now.")]),
+                (
+                    "empty-archive",
+                    workspace,
+                    200,
+                    [
+                        ("user", "# AGENTS.md instructions for C:\\work"),
+                        ("user", "<turn_aborted>"),
+                        ("user", "codexgo"),
+                        ("user", "啥意思呢"),
+                    ],
+                ),
+                ("previous", workspace, 100, [("user", "continue the saved release task"), ("assistant", "On it.")]),
+            ],
+        )
+        command = [
+            sys.executable,
+            str(SCRIPT),
+            "--cwd",
+            str(child),
+            "--codex-home",
+            str(codex_home),
+            "--format",
+            "json",
+        ]
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", check=True)
+        result = json.loads(completed.stdout)
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["thread_id"] == "previous"
+    assert result["resolved_request"] == "continue the saved release task"
+
+
 def test_codexgo_recovers_previous_real_request() -> None:
     tmp_path = make_case_dir()
     try:
@@ -213,6 +256,51 @@ def test_codexgo_recovers_previous_real_request() -> None:
     assert result["resolved_source"] == "user_message"
 
 
+def test_pinyin_continue_is_low_signal() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "finish the App install smoke test"),
+                ("assistant", "I will verify the installed skill."),
+                ("user", "ji xu"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["resolved_request"] == "finish the App install smoke test"
+    assert result["ambiguity_hints"] == []
+
+
+def test_skill_trigger_words_are_low_signal_inside_previous_thread() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "finish the release checklist"),
+                ("assistant", "I will continue from the checklist."),
+                ("user", "codexgo"),
+                ("assistant", "Recovered the previous task."),
+                ("user", "啥意思呢"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["resolved_request"] == "finish the release checklist"
+
+
 def test_agreement_recovers_assistant_suggestion() -> None:
     tmp_path = make_case_dir()
     try:
@@ -233,6 +321,50 @@ def test_agreement_recovers_assistant_suggestion() -> None:
 
     assert result["resolved_request"] == "I will keep one script and one SKILL.md."
     assert result["resolved_source"] == "assistant_suggestion"
+
+
+def test_pinyin_agreement_recovers_assistant_suggestion() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "choose the smallest local-only implementation"),
+                ("assistant", "I will keep it as one Python file and one skill file."),
+                ("user", "haode"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["resolved_request"] == "I will keep it as one Python file and one skill file."
+    assert result["resolved_source"] == "assistant_suggestion"
+
+
+def test_turn_aborted_is_ignored_when_reading_timeline() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "recover the real request"),
+                ("assistant", "Working on it."),
+                ("user", "<turn_aborted>"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["literal_last_user_message"] == "recover the real request"
+    assert result["resolved_request"] == "recover the real request"
 
 
 def test_supplement_merges_previous_context() -> None:
@@ -282,6 +414,55 @@ def test_reference_expands_supporting_context_upward() -> None:
     assert result["needs_more_context"] is True
     assert result["context_expanded_upward"] is True
     assert result["supporting_context"][0]["text"] == "恢复链路要覆盖：读取状态库、解析时间线、输出结果。"
+
+
+def test_uncertain_assistant_plan_expands_to_decision_basis_on_agreement() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "对比 SQLite、本地 JSON、远程 API，选择一个最小恢复实现。"),
+                ("assistant", "我先按上一条方案推进，如果我理解错了再调整。"),
+                ("user", "ok"),
+            ],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["resolved_source"] == "assistant_suggestion_with_decision_basis"
+    assert result["decision_basis_message"] == "对比 SQLite、本地 JSON、远程 API，选择一个最小恢复实现。"
+    assert "uncertainty" in result["ambiguity_hints"]
+    assert "reference" in result["ambiguity_hints"]
+
+
+def test_backend_choice_reference_expands_to_candidate_list() -> None:
+    tmp_path = make_case_dir()
+    try:
+        cwd = tmp_path / "work"
+        cwd.mkdir()
+
+        result = run_codexgo(
+            tmp_path,
+            cwd,
+            [
+                ("user", "后端候选：ZLMediaKit / MediaMTX / SRS，选一个保持本地可跑。"),
+                ("assistant", "我会先比较这几个后端。"),
+                ("user", "这个后端方案继续"),
+            ],
+            ["--lookback", "1"],
+        )
+    finally:
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    assert result["needs_more_context"] is True
+    assert result["context_expanded_upward"] is True
+    assert "backend_choice" in result["ambiguity_hints"]
+    assert result["supporting_context"][0]["text"] == "后端候选：ZLMediaKit / MediaMTX / SRS，选一个保持本地可跑。"
 
 
 def test_agreement_merges_decision_basis_for_ambiguous_assistant_suggestion() -> None:

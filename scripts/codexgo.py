@@ -29,6 +29,15 @@ LOW_SIGNAL = {
     "继续吧",
     "接着",
     "接着做",
+    "jixu",
+    "jixuba",
+    "codexgo",
+    "golast",
+    "啥意思",
+    "啥意思呢",
+    "什么意思",
+    "whatdoesthatmean",
+    "whatdoesitmean",
 }
 
 AGREEMENTS = {
@@ -37,14 +46,20 @@ AGREEMENTS = {
     "yes",
     "yep",
     "sure",
+    "soundsgood",
     "agreed",
     "doit",
     "goahead",
     "好",
     "好的",
+    "hao",
+    "haode",
     "可以",
+    "keyi",
     "同意",
+    "tongyi",
     "行",
+    "xing",
 }
 
 SUPPLEMENT_STARTS = (
@@ -65,6 +80,8 @@ SUPPLEMENT_STARTS = (
 REFERENCE_WORDS = (
     "do that",
     "do this",
+    "that change",
+    "this change",
     "that plan",
     "this plan",
     "same as above",
@@ -72,14 +89,28 @@ REFERENCE_WORDS = (
     "continue that",
     "that approach",
     "previous approach",
+    "previous change",
+    "continue in that direction",
+    "the previous plan",
+    "the previous approach",
+    "the above",
+    "as above",
+    "same approach",
+    "same plan",
     "这个",
     "那个",
+    "这样",
     "上面",
+    "上述",
     "前面",
+    "之前",
     "同上",
+    "该方案",
     "这个方案",
+    "那个方案",
     "按这个",
     "按上面",
+    "按刚才",
     "刚才那个",
     "前面的方案",
     "上一条方案",
@@ -111,17 +142,25 @@ CONCRETE_HINTS = (
     ".py",
     ".ts",
     ".js",
+    ".cpp",
+    ".h",
+    ".go",
+    ".rs",
     "`",
     "fix",
     "update",
     "implement",
     "refactor",
+    "repair",
+    "recover",
+    "recovery",
     "read",
     "修复",
     "更新",
     "实现",
     "重构",
     "读取",
+    "恢复",
 )
 
 SELECTION_HINTS = (
@@ -138,6 +177,31 @@ SELECTION_HINTS = (
     "对比",
     "比较",
     "哪个",
+)
+
+UNCERTAINTY_HINTS = (
+    "if not",
+    "if i misunderstood",
+    "if i am wrong",
+    "i assume",
+    "assuming",
+    "unclear",
+    "probably",
+    "likely",
+    "如果不是",
+    "如果我理解错了",
+    "我理解为",
+    "我先按",
+    "不确定",
+)
+
+BACKEND_CANDIDATE_HINTS = (
+    "librtmp",
+    "ffmpeg",
+    "libavformat",
+    "zlmediakit",
+    "mediamtx",
+    "srs",
 )
 
 
@@ -181,7 +245,7 @@ def clean_user_text(text: str) -> str:
         return ""
     if value.lower() in {"codex", "assistant", "claude"}:
         return ""
-    if value.startswith("# AGENTS.md instructions for "):
+    if value.startswith("# AGENTS.md instructions for ") or value.startswith("<turn_aborted>"):
         return ""
     return value
 
@@ -297,13 +361,16 @@ def locate_thread(codex_home: Path, cwd: str, scope: str, skip_current: bool) ->
     with sqlite3.connect(db_path) as conn:
         threads = read_threads(conn)
     for label, target in target_paths(cwd, scope):
-        matches = [
+        candidates = [
             thread
             for thread in threads
-            if thread.rollout_path and Path(thread.rollout_path).exists() and thread_matches(label, thread.cwd, target)
+            if thread.rollout_path
+            and Path(thread.rollout_path).exists()
+            and thread_matches(label, thread.cwd, target)
         ]
-        if skip_current and matches:
-            matches = matches[1:]
+        if skip_current and candidates:
+            candidates = candidates[1:]
+        matches = [thread for thread in candidates if has_recoverable_thread_content(thread)]
         if matches:
             return label, target, matches[0]
     raise LookupError(f"No previous Codex thread found for cwd={cwd}")
@@ -355,6 +422,20 @@ def parse_rollout(path: Path) -> list[Entry]:
     return dedupe(entries)
 
 
+def has_recoverable_thread_content(thread: Thread) -> bool:
+    first_user = clean_user_text(thread.first_user_message)
+    if first_user and not is_low_signal(first_user) and not is_agreement(first_user):
+        return True
+    try:
+        entries = parse_rollout(Path(thread.rollout_path))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return any(
+        entry.role == "user" and not is_low_signal(entry.text) and not is_agreement(entry.text)
+        for entry in entries
+    )
+
+
 def dedupe(entries: list[Entry]) -> list[Entry]:
     result: list[Entry] = []
     last: tuple[str, str] | None = None
@@ -368,7 +449,7 @@ def dedupe(entries: list[Entry]) -> list[Entry]:
 
 def is_low_signal(text: str) -> bool:
     folded = compact(text)
-    return not folded or folded in LOW_SIGNAL or len(folded) <= 4
+    return not folded or folded in LOW_SIGNAL
 
 
 def is_agreement(text: str) -> bool:
@@ -386,6 +467,8 @@ def has_concrete_hint(text: str) -> bool:
         return True
     if count_inline_candidates(text) >= 3:
         return True
+    if count_backend_candidates(text) >= 2:
+        return True
     return any(hint in lower for hint in CONCRETE_HINTS if hint.isascii()) or any(
         hint in text for hint in CONCRETE_HINTS if not hint.isascii()
     )
@@ -400,6 +483,11 @@ def count_inline_candidates(text: str) -> int:
     return sum(1 for candidate in candidates if re.search(r"[A-Za-z0-9\u4e00-\u9fff]{2,}", candidate))
 
 
+def count_backend_candidates(text: str) -> int:
+    lower = text.lower()
+    return sum(1 for hint in BACKEND_CANDIDATE_HINTS if hint in lower)
+
+
 def has_selection_hint(text: str) -> bool:
     lower = text.lower()
     return any(hint in lower for hint in SELECTION_HINTS if hint.isascii()) or any(
@@ -410,12 +498,15 @@ def has_selection_hint(text: str) -> bool:
 def is_decision_basis(text: str) -> bool:
     if not has_selection_hint(text):
         return False
-    return has_list(text) or count_inline_candidates(text) >= 3
+    return has_list(text) or count_inline_candidates(text) >= 3 or count_backend_candidates(text) >= 2
 
 
 def ambiguity_hints(text: str) -> tuple[str, ...]:
     hints: list[str] = []
     lower = text.lower()
+    compacted = compact(text)
+    if not compacted:
+        hints.append("empty")
     if is_low_signal(text):
         hints.append("low_signal")
     if is_agreement(text):
@@ -426,8 +517,14 @@ def ambiguity_hints(text: str) -> tuple[str, ...]:
         hints.append("reference")
     if any(term in text for term in AMBIGUOUS_COUNT_TERMS):
         hints.append("count_shorthand")
-    if ("方案" in text or "plan" in lower) and not has_concrete_hint(text):
+    if ("后端" in text or "backend" in lower) and count_backend_candidates(text) < 2:
+        hints.append("backend_choice")
+    if ("方案" in text or "路线" in text or "plan" in lower or "approach" in lower) and not has_concrete_hint(text):
         hints.append("plan_reference")
+    if any(hint in lower for hint in UNCERTAINTY_HINTS if hint.isascii()) or any(
+        hint in text for hint in UNCERTAINTY_HINTS if not hint.isascii()
+    ):
+        hints.append("uncertainty")
     return tuple(dict.fromkeys(hints))
 
 
@@ -444,13 +541,21 @@ def combine_ambiguity_hints(*texts: str) -> tuple[str, ...]:
 
 def needs_context(text: str) -> bool:
     hints = ambiguity_hints(text)
-    if "low_signal" in hints or "agreement" in hints:
+    if "empty" in hints or "low_signal" in hints or "agreement" in hints or "uncertainty" in hints:
         return True
     if "count_shorthand" in hints:
-        return True
+        return not (has_list(text) or count_inline_candidates(text) >= 3 or count_backend_candidates(text) >= 2)
+    if "backend_choice" in hints:
+        return not (has_list(text) or count_backend_candidates(text) >= 2)
     if "reference" in hints or "plan_reference" in hints:
         return not has_concrete_hint(text)
     return False
+
+
+def should_attach_decision_basis(text: str) -> bool:
+    hints = ambiguity_hints(text)
+    context_dependent = {"count_shorthand", "backend_choice", "reference", "plan_reference", "uncertainty"}
+    return needs_context(text) or any(hint in hints for hint in context_dependent)
 
 
 def previous_context(entries: list[Entry], before_index: int) -> tuple[int, Entry] | None:
@@ -483,9 +588,16 @@ def merge_decision_basis(decision_basis: str, current: str) -> str:
 def entry_resolves_ambiguity(text: str, hints: tuple[str, ...]) -> bool:
     if not hints:
         return False
-    if "count_shorthand" in hints and (has_list(text) or count_inline_candidates(text) >= 3):
+    if "count_shorthand" in hints and (has_list(text) or count_inline_candidates(text) >= 3 or count_backend_candidates(text) >= 2):
         return True
+    if "backend_choice" in hints:
+        if is_decision_basis(text):
+            return True
+        if count_backend_candidates(text) >= 2 and ("后端" in text or "backend" in text.lower() or "rtmp" in text.lower()):
+            return True
     if ("reference" in hints or "plan_reference" in hints) and has_concrete_hint(text):
+        return True
+    if "uncertainty" in hints and has_concrete_hint(text):
         return True
     return False
 
@@ -531,7 +643,7 @@ def resolve(entries: list[Entry], first_user_message: str) -> Resolved:
                 decision_index = index
                 decision_text = ""
                 resolved_text = entry.text
-                if decision is not None and needs_context(entry.text):
+                if decision is not None and should_attach_decision_basis(entry.text):
                     decision_index, decision_entry = decision
                     decision_text = decision_entry.text
                     resolved_text = merge_decision_basis(decision_text, entry.text)
@@ -556,7 +668,7 @@ def resolve(entries: list[Entry], first_user_message: str) -> Resolved:
             base_context = entry.text
             if entry.role == "assistant":
                 decision = previous_decision_basis(entries, context_index)
-                if decision is not None and needs_context(entry.text):
+                if decision is not None and should_attach_decision_basis(entry.text):
                     decision_index, decision_entry = decision
                     decision_text = decision_entry.text
                     base_context = merge_decision_basis(decision_text, entry.text)
