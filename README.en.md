@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>A tiny Codex recovery skill.</strong><br>
-  Recover the last actionable request from local session history.
+  When a thread disappears, codexgo digs through local history and brings the task back. (｀・ω・´)
 </p>
 
 <p align="center">
@@ -27,17 +27,19 @@
 
 ## What It Is
 
-`codexgo` solves one specific problem: you already explained the task, Codex started working, and the thread vanished because of compaction failure, crash, or lost context. Open a fresh session, type `codexgo`, and it reads local Codex state plus rollout records to recover the most likely continuation request.
+`codexgo` solves one specific, mildly cursed problem: you already explained the task, Codex started working, and the thread vanished because of compaction failure, crash, or lost context. Open a fresh session, type `codexgo`, and it reads local Codex state plus rollout records to recover the most likely continuation request.
+
+No cloud memory. No magic. No database writes. Just a tiny recovery buddy rummaging through local history and saying, "hey, we were doing this." (｡•̀ᴗ-)✧
 
 ## Highlights
 
 | Feature | What it means |
 | --- | --- |
-| Small | One Python script, one skill file, standard library only |
-| Safe | Local-only, read-only, no uploads, no database writes |
-| Context-aware | Skips low-signal replies and expands context for `三端`, `this plan`, and similar references |
-| Scriptable | Supports both plain text and JSON output |
-| Hackable | Compact logic that is easy to read, study, and modify |
+| Tiny on purpose | One Python script, one skill file, standard library only |
+| Quiet and safe | Local-only, read-only, no uploads, no database writes |
+| Has a little memory | Skips low-signal replies and expands context for `三端`, `this plan`, and similar references |
+| Script-friendly | Supports both plain text and JSON output |
+| Easy to poke at | Compact logic that is easy to read, study, and modify |
 
 ## Install in 30 seconds
 
@@ -61,6 +63,8 @@ Restart Codex, then type this at the beginning of a fresh session:
 codexgo
 ```
 
+If you just crawled out of a broken thread, this is usually the first thing to say. No need to explain the whole task twice.
+
 ## Quick Demo
 
 <p align="center">
@@ -74,6 +78,8 @@ codexgo
 </p>
 
 ## What It Handles
+
+Its job is to turn "human continuation noise" back into something Codex can actually continue. Small tool, useful little shovel. (ง •̀_•́)ง
 
 | Last message before interruption | How codexgo resolves it |
 | --- | --- |
@@ -121,6 +127,8 @@ JSON output for automation:
 - Does not modify your project files unless you pass its output into another automation.
 - Returns an error when recovery fails instead of fabricating a request.
 
+In plain words: it is not a cloud memory service. It is a local bookmark with a flashlight.
+
 ## CLI
 
 ```bash
@@ -152,6 +160,8 @@ Common options:
 - If Codex changes its SQLite schema or rollout format, the parser may need an update.
 - Ambiguous-reference recovery is rule-based, not LLM semantic reasoning.
 - Recovery works best from the same workspace or Git repository.
+
+It follows clues, but it does not pretend to be psychic. If it cannot recover the task, it says so.
 
 ## Star History
 
