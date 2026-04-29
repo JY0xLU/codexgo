@@ -31,46 +31,13 @@
 
 No cloud memory. No magic. No database writes. Just a tiny recovery buddy rummaging through local history and saying, "hey, we were doing this." (｡•̀ᴗ-)✧
 
-## The Problem
-
-Codex periodically compacts background context. When that compact request is interrupted, you may see an error like this:
-
-```text
-Error running remote compact task: stream disconnected before completion:
-error sending request for url (https://chatgpt.com/backend-api/codex/responses/compact)
-```
-
-At that point the original session may be impossible to continue, but the task context is still present in local Codex records. `codexgo` recovers that context for you.
-
-## The Fix
-
-After a compact crash:
-
-1. Stay in the original workspace. The broken session does not need heroic CPR.
-2. Open a fresh Codex session.
-3. Type `codexgo`.
-
-```text
-codexgo
-```
-
-It recovers the last actionable request from the previous session so you can continue immediately. No manual recall, no re-explaining the task, no rebuilding context from scratch.
-
-## How It Works
-
-1. Reads the local Codex SQLite state database.
-2. Finds the previous session thread for the current workspace.
-3. Parses the conversation timeline and identifies the last real request.
-4. Skips low-signal messages such as `ok` and `continue`.
-5. Expands context upward for fuzzy references such as "that approach", "the previous plan", and "continue in that direction".
-
 ## Highlights
 
 | Feature | What it means |
 | --- | --- |
 | Tiny on purpose | One Python script, one skill file, standard library only |
 | Quiet and safe | Local-only, read-only, no uploads, no database writes |
-| Has a little memory | Skips low-signal replies and expands context for "that approach", "the previous plan", and similar references |
+| Has a little memory | Skips low-signal replies and expands context for "the idea I just accepted", "continue the previous decision", and similar references |
 | Script-friendly | Supports both plain text and JSON output |
 | Easy to poke at | Compact logic that is easy to read, study, and modify |
 
@@ -131,7 +98,7 @@ Its job is to turn "human continuation noise" back into something Codex can actu
 | `continue` / `go on` / `继续` | Walks back to the previous real request |
 | `ok` / `yes` / `好的` | Recovers the assistant plan you agreed to |
 | `补充：...` | Merges the supplement with the previous context |
-| "that approach" / "the previous plan" / "continue in that direction" | Expands supporting context upward automatically |
+| "continue the idea I just accepted" / "follow the previous decision" | Expands supporting context upward automatically |
 | Selection or comparison prompts | Emits `decision_basis_message` as the decision basis |
 | Automation use cases | Emits JSON for downstream tools |
 
