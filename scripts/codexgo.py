@@ -69,6 +69,9 @@ REFERENCE_WORDS = (
     "this plan",
     "same as above",
     "above",
+    "continue that",
+    "that approach",
+    "previous approach",
     "这个",
     "那个",
     "上面",
@@ -77,6 +80,10 @@ REFERENCE_WORDS = (
     "这个方案",
     "按这个",
     "按上面",
+    "刚才那个",
+    "前面的方案",
+    "上一条方案",
+    "继续这个方向",
 )
 
 AMBIGUOUS_COUNT_TERMS = (

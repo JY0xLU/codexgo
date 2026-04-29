@@ -179,11 +179,11 @@ def test_reference_expands_supporting_context_upward() -> None:
             tmp_path,
             cwd,
             [
-                ("user", "三端都要覆盖：CLI、README、测试。"),
-                ("assistant", "我会按三端推进。"),
+                ("user", "恢复链路要覆盖：读取状态库、解析时间线、输出结果。"),
+                ("assistant", "我会按这条恢复链路推进。"),
                 ("user", "先做 CLI。"),
                 ("assistant", "CLI 已经完成。"),
-                ("user", "按这个方案继续"),
+                ("user", "继续这个方向"),
             ],
             ["--lookback", "1"],
         )
@@ -192,7 +192,7 @@ def test_reference_expands_supporting_context_upward() -> None:
 
     assert result["needs_more_context"] is True
     assert result["context_expanded_upward"] is True
-    assert result["supporting_context"][0]["text"] == "三端都要覆盖：CLI、README、测试。"
+    assert result["supporting_context"][0]["text"] == "恢复链路要覆盖：读取状态库、解析时间线、输出结果。"
 
 
 def test_agreement_merges_decision_basis_for_ambiguous_assistant_suggestion() -> None:
@@ -206,7 +206,7 @@ def test_agreement_merges_decision_basis_for_ambiguous_assistant_suggestion() ->
             cwd,
             [
                 ("user", "对比三种方案：SQLite、本地 JSON、远程 API，选择一个最小实现。"),
-                ("assistant", "建议按这个方案：用 SQLite 做只读恢复。"),
+                ("assistant", "建议按上一条方案：用 SQLite 做只读恢复。"),
                 ("user", "ok"),
             ],
         )
@@ -229,15 +229,15 @@ def test_supplement_merges_decision_basis_for_previous_assistant_context() -> No
             tmp_path,
             cwd,
             [
-                ("user", "选择三端输出：text、json、supporting_context，保持小工具实现。"),
-                ("assistant", "这个方案可以，先补 json 输出。"),
+                ("user", "选择输出形态：text、json、supporting_context，保持小工具实现。"),
+                ("assistant", "前面的方案可以，先补 json 输出。"),
                 ("user", "补充：同时更新 README"),
             ],
         )
     finally:
         shutil.rmtree(tmp_path, ignore_errors=True)
 
-    assert result["decision_basis_message"] == "选择三端输出：text、json、supporting_context，保持小工具实现。"
+    assert result["decision_basis_message"] == "选择输出形态：text、json、supporting_context，保持小工具实现。"
     assert "Current execution slice:" in result["resolved_request"]
     assert "补充：同时更新 README" in result["resolved_request"]
     assert result["resolved_source"] == "supplement_plus_decision_basis_and_previous_assistant"

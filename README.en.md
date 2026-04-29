@@ -62,7 +62,7 @@ It recovers the last actionable request from the previous session so you can con
 2. Finds the previous session thread for the current workspace.
 3. Parses the conversation timeline and identifies the last real request.
 4. Skips low-signal messages such as `ok` and `continue`.
-5. Expands context upward for ambiguous references such as `三端`, `this plan`, and `按上面`.
+5. Expands context upward for fuzzy references such as "that approach", "the previous plan", and "continue in that direction".
 
 ## Highlights
 
@@ -70,7 +70,7 @@ It recovers the last actionable request from the previous session so you can con
 | --- | --- |
 | Tiny on purpose | One Python script, one skill file, standard library only |
 | Quiet and safe | Local-only, read-only, no uploads, no database writes |
-| Has a little memory | Skips low-signal replies and expands context for `三端`, `this plan`, and similar references |
+| Has a little memory | Skips low-signal replies and expands context for "that approach", "the previous plan", and similar references |
 | Script-friendly | Supports both plain text and JSON output |
 | Easy to poke at | Compact logic that is easy to read, study, and modify |
 
@@ -114,7 +114,7 @@ Its job is to turn "human continuation noise" back into something Codex can actu
 | `continue` / `go on` / `继续` | Walks back to the previous real request |
 | `ok` / `yes` / `好的` | Recovers the assistant plan you agreed to |
 | `补充：...` | Merges the supplement with the previous context |
-| `三端` / `this plan` / `按上面` | Expands supporting context upward automatically |
+| "that approach" / "the previous plan" / "continue in that direction" | Expands supporting context upward automatically |
 | Selection or comparison prompts | Emits `decision_basis_message` as the decision basis |
 | Automation use cases | Emits JSON for downstream tools |
 
