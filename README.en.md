@@ -1,5 +1,12 @@
 <p align="center">
-  <img src="assets/codexgo-hero.svg" alt="codexgo hero" width="100%">
+  <img src="assets/codexgo-logo.svg" alt="codexgo logo" width="132">
+</p>
+
+<h1 align="center">codexgo</h1>
+
+<p align="center">
+  <strong>A tiny Codex recovery skill.</strong><br>
+  Recover the last actionable request from local session history.
 </p>
 
 <p align="center">
@@ -18,11 +25,9 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo?style=flat-square">
 </p>
 
-# codexgo
+## What It Is
 
-`codexgo` is a tiny Codex recovery skill. When a Codex session is interrupted by compaction failure, crash, or lost context, it reads your local Codex session records and recovers the last actionable request.
-
-It is built for the annoying moment when you already explained the task, Codex started working, and the thread vanished. Open a fresh session, type `codexgo`, and it pulls the most likely continuation point back into view.
+`codexgo` solves one specific problem: you already explained the task, Codex started working, and the thread vanished because of compaction failure, crash, or lost context. Open a fresh session, type `codexgo`, and it reads local Codex state plus rollout records to recover the most likely continuation request.
 
 ## Highlights
 
@@ -51,7 +56,7 @@ codexgo
 ## Usage Flow
 
 <p align="center">
-  <img src="assets/codexgo-usage.svg" alt="codexgo usage flow" width="100%">
+  <img src="assets/codexgo-usage.svg" alt="codexgo recovery flow" width="100%">
 </p>
 
 ## What It Handles

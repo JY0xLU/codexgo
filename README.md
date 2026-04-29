@@ -1,5 +1,12 @@
 <p align="center">
-  <img src="assets/codexgo-hero.svg" alt="codexgo hero" width="100%">
+  <img src="assets/codexgo-logo.svg" alt="codexgo logo" width="132">
+</p>
+
+<h1 align="center">codexgo</h1>
+
+<p align="center">
+  <strong>一个很小的 Codex 断点恢复 skill。</strong><br>
+  从本地会话记录里找回上一轮真正要继续的任务。
 </p>
 
 <p align="center">
@@ -18,11 +25,9 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo?style=flat-square">
 </p>
 
-# codexgo
+## 是什么
 
-`codexgo` 是一个很小的 Codex 恢复 skill。Codex 因为 compact、崩溃或上下文丢失而中断后，它会从本地 Codex 会话记录里找回“上一轮真正要继续的任务”。
-
-它适合那种很烦人的场景：你刚把任务讲清楚，Codex 正在做，线程突然断了。新开一个会话输入 `codexgo`，它会帮你把最应该继续的请求挖出来。
+`codexgo` 用来处理一个很具体的问题：你刚把任务讲清楚，Codex 正在做，线程却因为 compact、崩溃或上下文丢失断掉了。新开一个会话输入 `codexgo`，它会从本地 Codex 状态和 rollout 记录里推回最应该继续的请求。
 
 ## 亮点
 
@@ -51,7 +56,7 @@ codexgo
 ## 使用图
 
 <p align="center">
-  <img src="assets/codexgo-usage.svg" alt="codexgo usage flow" width="100%">
+  <img src="assets/codexgo-usage.svg" alt="codexgo recovery flow" width="100%">
 </p>
 
 ## 它会处理什么
