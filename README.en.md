@@ -31,6 +31,39 @@
 
 No cloud memory. No magic. No database writes. Just a tiny recovery buddy rummaging through local history and saying, "hey, we were doing this." (｡•̀ᴗ-)✧
 
+## The Problem
+
+Codex periodically compacts background context. When that compact request is interrupted, you may see an error like this:
+
+```text
+Error running remote compact task: stream disconnected before completion:
+error sending request for url (https://chatgpt.com/backend-api/codex/responses/compact)
+```
+
+At that point the original session may be impossible to continue, but the task context is still present in local Codex records. `codexgo` recovers that context for you.
+
+## The Fix
+
+After a compact crash:
+
+1. Stay in the original workspace. The broken session does not need heroic CPR.
+2. Open a fresh Codex session.
+3. Type `codexgo`.
+
+```text
+codexgo
+```
+
+It recovers the last actionable request from the previous session so you can continue immediately. No manual recall, no re-explaining the task, no rebuilding context from scratch.
+
+## How It Works
+
+1. Reads the local Codex SQLite state database.
+2. Finds the previous session thread for the current workspace.
+3. Parses the conversation timeline and identifies the last real request.
+4. Skips low-signal messages such as `ok` and `continue`.
+5. Expands context upward for ambiguous references such as `三端`, `this plan`, and `按上面`.
+
 ## Highlights
 
 | Feature | What it means |
