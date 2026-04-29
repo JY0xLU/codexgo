@@ -5,8 +5,8 @@
 <h1 align="center">codexgo</h1>
 
 <p align="center">
-  <strong>A tiny note card for the next Codex thread.</strong><br>
-  When the old thread is gone, codexgo checks the local black box before you explain everything again. (｀・ω・´)
+  <strong>A local read-only recovery skill for Codex sessions.</strong><br>
+  Recover the previous actionable request in a fresh thread, without re-explaining the whole task.
 </p>
 
 <p align="center">
@@ -25,83 +25,77 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo/main?style=flat-square">
 </p>
 
-## In One Sentence
+## Purpose
 
-`codexgo` is a small Codex skill. It does not write code for you, search the web, or invent memory. Its only job is to prepare the next useful instruction for a fresh Codex thread by reading the local traces left by earlier sessions.
+`codexgo` is a small Codex skill that builds a continuation prompt for a fresh Codex thread.
 
-Think of it as a local black-box reader. The thread is gone, but the clues are still on disk.
+It does not call the network, write to Codex databases, or edit project files. It only reads local Codex state and session records, then selects the request most suitable for continuing the previous task.
 
-## When To Use It
-
-Use it when you already explained the task, Codex started working, and then the session became unusable. You can always retype the full task manually, but that is slow and easy to get subtly wrong.
-
-At the start of the new thread, type:
+Typical use at the beginning of a fresh thread:
 
 ```text
 codexgo
 ```
 
-It looks near the current workspace, finds recent Codex session records, and returns the instruction that is most useful for continuing the work.
+Then continue with the returned `resolved_request`.
 
-## What It Returns
+## Use Cases
 
-`codexgo` is not trying to replay the whole conversation. It produces a continuation card:
-
-| Situation | What it returns |
+| Situation | What codexgo does |
 | --- | --- |
-| The last message was already a concrete task | That task |
-| The last message was `continue` / `go on` / `继续` | The earlier task it points to |
-| The last message was `ok` / `yes` / `好的` | The assistant proposal you accepted |
-| The last message added extra detail | The merged task plus supplement |
-| The request depends on older context | Supporting context nearby |
-| You want automation | JSON fields for downstream tools |
+| A long session became unusable | Recovers the previous task entry point |
+| Last message was `continue` / `继续` | Finds the concrete request it refers to |
+| Last message was `ok` / `好的` | Recovers the assistant proposal you accepted |
+| Last message added a constraint | Merges the supplement with nearby task context |
+| Current directory is nested | Searches by workspace tree or Git repository scope |
+| Automation needs structured data | Emits stable JSON fields |
 
-If it cannot find a credible continuation, it says so instead of making one up.
+If no credible continuation is found, it returns an error state instead of inventing one.
 
-## What It Reads
+## Local Inputs
 
-`codexgo` is local and read-only. It opens Codex state indexes and session timeline files, then turns them into one continuation trail:
+`codexgo` is a local read-only parser. It uses:
 
-| Clue | Purpose |
+| Source | Purpose |
 | --- | --- |
-| `state_*.sqlite` | Finds recent Codex threads, workspace paths, and update times |
-| rollout JSONL | Reads user messages, assistant replies, tool events, and interrupted turns |
-| current `--cwd` | Decides which workspace or Git repo should be preferred |
-| recent user messages | Separates concrete tasks from short acknowledgements and supplements |
-| previous assistant proposal | Recovers the plan you accepted when your last reply was only `ok` / `好的` |
+| `state_*.sqlite` | Finds Codex threads, workspace paths, and update times |
+| rollout JSONL | Reads user messages, assistant replies, tool events, and interruption markers |
+| current `--cwd` | Starting point for workspace matching |
+| recent user messages | Detects tasks, acknowledgements, supplements, and triggers |
+| recent assistant messages | Recovers accepted proposals after short agreement replies |
 
-By default, it skips the current thread. That prevents the fresh `codexgo` trigger itself from becoming the recovered request.
+By default, the current thread is skipped so the `codexgo` trigger itself does not become the recovered request.
 
-## Workspace Matching
+## Matching Scope
 
-The match is not limited to one exact path. `codexgo` supports several scopes, and `auto` is the default:
+`--scope` controls which historical threads may be used:
 
-| Scope | Useful when |
+| Scope | Meaning |
 | --- | --- |
-| `exact` | Only the same workspace path should count |
-| `repo` | Any thread inside the same Git repository is relevant |
-| `tree` | Parent and child directories may both contain useful history |
-| `auto` | Let codexgo start narrow and widen when needed |
+| `exact` | Match only the exact same workspace path |
+| `repo` | Match threads from the same Git repository |
+| `tree` | Match parent or child directory threads |
+| `auto` | Default strategy that chooses an appropriate scope |
 
-This matters in the Codex app because you may start a task at the repo root and continue from a nested folder later.
+`tree` is useful in the Codex app because a task may start at the repo root and later continue from a nested directory.
 
-## Noise Handling
+## Filtering And Backtracking
 
-The last line before a break is often not the task itself. `codexgo` treats those messages as signposts:
+The final message before a break is often not a complete task. `codexgo` handles common low-signal messages with deterministic rules:
 
 | Type | Examples | Behavior |
 | --- | --- | --- |
 | Continue trigger | `continue`, `go on`, `继续`, `jixu` | Walks back to the previous concrete task |
-| Agreement | `ok`, `yes`, `好的`, `可以` | Recovers the assistant proposal you accepted |
-| Skill trigger | `codexgo`, `golast` | Does not treat the trigger as the task |
-| Interrupted turn marker | `<turn_aborted>` | Ignores it |
-| Empty shell thread | Only system text, AGENTS notes, or triggers | Skips it and keeps searching |
+| Agreement | `ok`, `yes`, `好的`, `可以` | Recovers the previous assistant proposal |
+| Skill trigger | `codexgo`, `golast` | Does not treat the trigger as task content |
+| Interruption marker | `<turn_aborted>` | Ignores it |
+| Empty shell thread | Only system text, AGENTS content, or triggers | Skips it and keeps searching |
 
-It also watches for references that need earlier context, such as "continue the idea I accepted" or "follow the previous decision". When it has to look upward, `context_expanded_upward` is set in JSON.
+When a request depends on older context, `context_expanded_upward` is set and nearby messages are included in `supporting_context`.
 
-## Continuation Card Fields
+## JSON Fields
 
-JSON output is useful when you want to audit or automate the handoff:
+Use `--format json` for scripts:
 
 | Field | Meaning |
 | --- | --- |
@@ -110,23 +104,39 @@ JSON output is useful when you want to audit or automate the handoff:
 | `scope_used` | Search scope actually used |
 | `matched_cwd` | Workspace path from the recovered thread |
 | `thread_id` | Matching Codex thread |
-| `literal_last_user_message` | Last user message exactly as seen in the timeline |
-| `resolved_request` | Instruction to continue with |
-| `resolved_source` | Whether it came from a user task, assistant proposal, supplement, etc. |
-| `decision_basis_message` | The proposal or comparison that explains an accepted decision |
-| `supporting_context` | Nearby context attached to resolve vague references |
-| `recent_user_messages` | Recent user messages for quick human inspection |
+| `literal_last_user_message` | Last user message exactly as stored in the timeline |
+| `resolved_request` | Request recommended for continuation |
+| `resolved_source` | Source category, such as user task, assistant proposal, or supplement merge |
+| `decision_basis_message` | Proposal or comparison basis behind an accepted decision |
+| `supporting_context` | Nearby messages used to resolve context dependency |
+| `recent_user_messages` | Recent user messages for manual inspection |
 | `context_expanded_upward` | Whether older context was pulled in |
 
-Plain text is easier for humans; JSON is easier for tools.
+Example:
 
-## Put It In Codex
+```json
+{
+  "status": "ok",
+  "scope_used": "tree",
+  "matched_cwd": "/path/to/project",
+  "resolved_request": "Finish the README polish and run the tests.",
+  "resolved_source": "user_message",
+  "decision_basis_message": "",
+  "context_expanded_upward": false,
+  "recent_user_messages": [
+    "ok",
+    "continue the previous direction"
+  ]
+}
+```
+
+## Installation
 
 `codexgo` is a Codex skill, not a pip package. Put this repository inside Codex's `skills/codexgo` directory, then restart Codex.
 
 ### Codex App
 
-The Codex desktop app may use a dedicated `CODEX_HOME`. On this Windows setup, it is often `D:\CodexData\.codex`; regular CLI setups usually use `~/.codex`.
+The Codex desktop app may use a dedicated `CODEX_HOME`. On Windows, this is often `D:\CodexData\.codex`; regular CLI setups usually use `~/.codex`.
 
 ```powershell
 $CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } elseif (Test-Path "D:\CodexData\.codex") { "D:\CodexData\.codex" } else { "$HOME\.codex" }
@@ -134,7 +144,7 @@ New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
 git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-Fully restart the Codex app so it can rescan local skills. Tiny note courier needs to be discovered first. (｡•̀ᴗ-)✧
+Restart the Codex app so local skills are rescanned.
 
 ### Codex CLI: macOS / Linux
 
@@ -159,8 +169,6 @@ git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 
 ## CLI
 
-You can also run the script directly for debugging or automation:
-
 ```bash
 python scripts/codexgo.py --cwd . --format text
 python scripts/codexgo.py --cwd . --format json
@@ -178,45 +186,26 @@ Common options:
 --format <fmt>       text or json. Defaults to text.
 ```
 
-JSON example:
+## Privacy
 
-```json
-{
-  "status": "ok",
-  "scope_used": "tree",
-  "matched_cwd": "/path/to/project",
-  "resolved_request": "Finish the README polish and run the tests.",
-  "resolved_source": "user_message",
-  "decision_basis_message": "",
-  "context_expanded_upward": false,
-  "recent_user_messages": [
-    "ok",
-    "continue the idea I accepted"
-  ]
-}
-```
+- Reads only local Codex state and session records.
+- Does not upload conversations or call the network.
+- Does not write to Codex databases.
+- Does not modify project files.
+- Uses deterministic rules, not another LLM agent.
 
-## Local Rules
-
-- Reads only Codex state and session files on your own machine.
-- Does not upload conversations, call the network, or write back to Codex data.
-- Does not edit your project unless another automation consumes its output.
-- Uses deterministic rules; it is not another LLM agent.
-
-In plain words: it is not cloud memory. It is a bookmark with a flashlight.
-
-## Runtime Notes
+## Runtime
 
 - Python 3.10+
-- A local Codex data directory
+- Local Codex data directory
 - No third-party Python dependencies
 
 ## Boundaries
 
-- If there is no local session record, there is nothing to read.
-- If Codex changes its local state format, the parser may need an update.
-- It works best inside the same workspace or Git repository.
-- It avoids short low-signal replies, but it is not an all-knowing language judge.
+- No local session record means there is nothing to recover.
+- Codex local state format changes may require parser updates.
+- Recovery works best inside the same workspace or Git repository.
+- Low-signal detection is rule-based, not full semantic understanding.
 
 ## Star History
 
@@ -229,8 +218,6 @@ In plain words: it is not cloud memory. It is a bookmark with a flashlight.
 </a>
 
 ## Development
-
-Run tests:
 
 ```bash
 pytest
