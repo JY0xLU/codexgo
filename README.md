@@ -1,30 +1,40 @@
+<p align="center">
+  <img src="assets/codexgo-hero.svg" alt="codexgo hero" width="100%">
+</p>
+
+<p align="center">
+  <a href="README.en.md">English</a>
+  ·
+  <a href="https://github.com/JY0xLU/codexgo">GitHub</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/JY0xLU/codexgo/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/JY0xLU/codexgo?style=social"></a>
+  <a href="https://github.com/JY0xLU/codexgo/network/members"><img alt="GitHub forks" src="https://img.shields.io/github/forks/JY0xLU/codexgo?style=social"></a>
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="Dependencies" src="https://img.shields.io/badge/deps-zero-10B981?style=flat-square">
+  <img alt="Local only" src="https://img.shields.io/badge/privacy-local--only-0F766E?style=flat-square">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/JY0xLU/codexgo?style=flat-square"></a>
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo?style=flat-square">
+</p>
+
 # codexgo
 
-[English](README.en.md)
+`codexgo` 是一个很小的 Codex 恢复 skill。Codex 因为 compact、崩溃或上下文丢失而中断后，它会从本地 Codex 会话记录里找回“上一轮真正要继续的任务”。
 
-`codexgo` 是一个很小的 Codex 恢复工具。Codex 因为 compaction、崩溃或上下文丢失而中断后，它可以从本地 Codex 会话记录里找回上一轮真正要继续的任务。
+它适合那种很烦人的场景：你刚把任务讲清楚，Codex 正在做，线程突然断了。新开一个会话输入 `codexgo`，它会帮你把最应该继续的请求挖出来。
 
-它只读本地文件，不上传对话，不修改 Codex 数据库。
+## 亮点
 
-## 使用场景
+| 特性 | 说明 |
+| --- | --- |
+| 小 | 一个 Python 脚本，一个 skill 文件，标准库实现 |
+| 安全 | 只读本地 Codex 数据，不上传对话，不修改数据库 |
+| 懂上下文 | 会跳过 `继续`、`ok`、`好的` 这类低信息回复 |
+| 可脚本化 | 同时支持普通文本输出和 JSON 输出 |
+| 适合学习 | 逻辑集中、依赖极少，方便读代码和改造 |
 
-当 Codex 会话断掉后，在同一个项目目录里重新打开 Codex，然后输入：
-
-```text
-codexgo
-```
-
-这个 skill 会读取本地 Codex 状态数据库，找到当前工作区对应的上一个 thread，解析 rollout 记录，然后输出最可能需要继续执行的请求。
-
-## 它会处理什么
-
-- 最后一条用户消息是真正的任务：直接返回这条任务。
-- 最后一条用户消息是 `continue`、`go on`、`继续` 等低信息回复：向前找到上一条真实请求。
-- 最后一条用户消息是 `ok`、`yes`、`好的` 等同意回复：恢复你刚刚同意的助手方案。
-- 最后一条用户消息是 `补充：...` 这类补充说明：把补充内容和前面的上下文合并。
-- 输出支持普通文本和 JSON。
-
-## 安装
+## 30 秒安装
 
 把仓库 clone 到 Codex 的 skills 目录：
 
@@ -32,7 +42,27 @@ codexgo
 git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
 ```
 
-然后重启 Codex。之后在新会话开头输入 `codexgo` 即可。
+重启 Codex，然后在新会话开头输入：
+
+```text
+codexgo
+```
+
+## 使用图
+
+<p align="center">
+  <img src="assets/codexgo-usage.svg" alt="codexgo usage flow" width="100%">
+</p>
+
+## 它会处理什么
+
+| 中断前最后一条消息 | codexgo 怎么判断 |
+| --- | --- |
+| 真正的任务 | 直接返回这条任务 |
+| `continue` / `go on` / `继续` | 向前找到上一条真实请求 |
+| `ok` / `yes` / `好的` | 恢复你刚刚同意的助手方案 |
+| `补充：...` | 把补充内容和前面的上下文合并 |
+| 需要接入脚本 | 输出 JSON，交给其他工具继续处理 |
 
 ## 命令行
 
@@ -41,7 +71,7 @@ python scripts/codexgo.py --cwd . --format text
 python scripts/codexgo.py --cwd . --format json
 ```
 
-参数：
+常用参数：
 
 ```text
 --cwd <path>         工作区路径，默认是当前目录。
@@ -59,6 +89,14 @@ python scripts/codexgo.py --cwd . --format json
 - 本地存在 Codex 状态目录 `~/.codex`
 - 不需要第三方 Python 依赖
 
+## Star History
+
+<p align="center">
+  <a href="https://www.star-history.com/#JY0xLU/codexgo&Date">
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date">
+  </a>
+</p>
+
 ## 开发
 
 运行测试：
@@ -66,3 +104,7 @@ python scripts/codexgo.py --cwd . --format json
 ```bash
 python -m pytest tests/test_codexgo.py -p no:cacheprovider
 ```
+
+## License
+
+Apache-2.0
