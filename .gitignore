@@ -6,3 +6,4 @@ __pycache__/
 pytest-cache-files-*/
 .tools/
 go-dl.json
+error.log
