@@ -56,7 +56,7 @@ codexgo
 ## Usage Flow
 
 <p align="center">
-  <img src="assets/codexgo-usage.svg" alt="codexgo recovery flow" width="100%">
+  <img src="assets/codexgo-usage.png" alt="codexgo recovery flow" width="100%">
 </p>
 
 ## What It Handles
