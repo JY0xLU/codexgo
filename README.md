@@ -209,11 +209,13 @@ python scripts/codexgo.py --cwd . --format json
 
 ## Star History
 
-<p align="center">
-  <a href="https://starchart.cc/JY0xLU/codexgo">
-    <img width="100%" alt="codexgo Star History" src="https://starchart.cc/JY0xLU/codexgo.svg">
-  </a>
-</p>
+<a href="https://www.star-history.com/?repos=JY0xLU%2Fcodexgo&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## 开发
 
