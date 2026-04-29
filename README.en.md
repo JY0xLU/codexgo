@@ -5,8 +5,8 @@
 <h1 align="center">codexgo</h1>
 
 <p align="center">
-  <strong>A tiny Codex recovery skill.</strong><br>
-  When a thread disappears, codexgo digs through local history and brings the task back. (｀・ω・´)
+  <strong>A tiny note card for the next Codex thread.</strong><br>
+  When the old thread is gone, codexgo checks the local black box before you explain everything again. (｀・ω・´)
 </p>
 
 <p align="center">
@@ -25,31 +25,46 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo/main?style=flat-square">
 </p>
 
-## What It Is
+## In One Sentence
 
-`codexgo` solves one specific, mildly cursed problem: you already explained the task, Codex started working, and the thread vanished because of compaction failure, crash, or lost context. Open a fresh session, type `codexgo`, and it reads local Codex state plus rollout records to recover the most likely continuation request.
+`codexgo` is a small Codex skill. It does not write code for you, search the web, or invent memory. Its only job is to prepare the next useful instruction for a fresh Codex thread by reading the local traces left by earlier sessions.
 
-No cloud memory. No magic. No database writes. Just a tiny recovery buddy rummaging through local history and saying, "hey, we were doing this." (｡•̀ᴗ-)✧
+Think of it as a local black-box reader. The thread is gone, but the clues are still on disk.
 
-## Highlights
+## When To Use It
 
-| Feature | What it means |
+Use it when you already explained the task, Codex started working, and then the session became unusable. You can always retype the full task manually, but that is slow and easy to get subtly wrong.
+
+At the start of the new thread, type:
+
+```text
+codexgo
+```
+
+It looks near the current workspace, finds recent Codex session records, and returns the instruction that is most useful for continuing the work.
+
+## What It Returns
+
+`codexgo` is not trying to replay the whole conversation. It produces a continuation card:
+
+| Situation | What it returns |
 | --- | --- |
-| Tiny on purpose | One Python script, one skill file, standard library only |
-| Quiet and safe | Local-only, read-only, no uploads, no database writes |
-| Has a little memory | Skips low-signal replies and expands context for "the idea I just accepted", "continue the previous decision", and similar references |
-| Script-friendly | Supports both plain text and JSON output |
-| Easy to poke at | Compact logic that is easy to read, study, and modify |
+| The last message was already a concrete task | That task |
+| The last message was `continue` / `go on` / `继续` | The earlier task it points to |
+| The last message was `ok` / `yes` / `好的` | The assistant proposal you accepted |
+| The last message added extra detail | The merged task plus supplement |
+| The request depends on older context | Supporting context nearby |
+| You want automation | JSON fields for downstream tools |
 
-## Install
+If it cannot find a credible continuation, it says so instead of making one up.
 
-`codexgo` is a Codex skill, not a pip package. Put this repository in Codex's `skills/codexgo` directory, then restart Codex.
+## Put It In Codex
+
+`codexgo` is a Codex skill, not a pip package. Put this repository inside Codex's `skills/codexgo` directory, then restart Codex.
 
 ### Codex App
 
-If you use the Codex desktop app, install into your active `CODEX_HOME`. When it is not set, the Windows app often uses `D:\CodexData\.codex`; regular CLI setups usually use `~/.codex`.
-
-Windows PowerShell:
+The Codex desktop app may use a dedicated `CODEX_HOME`. On this Windows setup, it is often `D:\CodexData\.codex`; regular CLI setups usually use `~/.codex`.
 
 ```powershell
 $CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } elseif (Test-Path "D:\CodexData\.codex") { "D:\CodexData\.codex" } else { "$HOME\.codex" }
@@ -57,7 +72,7 @@ New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
 git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-Then fully restart the Codex app so it can rescan local skills. A tiny goblin must be discovered before it can help. (｀・ω・´)
+Fully restart the Codex app so it can rescan local skills. Tiny note courier needs to be discovered first. (｡•̀ᴗ-)✧
 
 ### Codex CLI: macOS / Linux
 
@@ -74,73 +89,15 @@ New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
 git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-Restart the Codex app, or open a fresh Codex CLI session, then type:
-
-```text
-codexgo
-```
-
-If you just crawled out of a broken thread, this is usually the first thing to say. No need to explain the whole task twice.
-
 ## Usage Flow
 
 <p align="center">
   <img src="assets/codexgo-usage.png" alt="codexgo recovery flow" width="100%">
 </p>
 
-## What It Handles
-
-Its job is to turn "human continuation noise" back into something Codex can actually continue. Small tool, useful little shovel. (ง •̀_•́)ง
-
-| Last message before interruption | How codexgo resolves it |
-| --- | --- |
-| A real task | Returns that task directly |
-| `continue` / `go on` / `继续` | Walks back to the previous real request |
-| `ok` / `yes` / `好的` | Recovers the assistant plan you agreed to |
-| `补充：...` | Merges the supplement with the previous context |
-| "continue the idea I just accepted" / "follow the previous decision" | Expands supporting context upward automatically |
-| Selection or comparison prompts | Emits `decision_basis_message` as the decision basis |
-| Automation use cases | Emits JSON for downstream tools |
-
-JSON output also includes `context_expanded_upward`, which tells callers whether codexgo had to walk further upward to resolve an ambiguous reference.
-
-## Example Output
-
-Plain text output:
-
-```text
-Recovered Codex request
-- matched workspace: /path/to/project
-- source: user_message
-- needs more context: False
-- context expanded upward: False
-
-Resolved request:
-Finish the README polish and run the tests.
-```
-
-JSON output for automation:
-
-```json
-{
-  "status": "ok",
-  "resolved_request": "Finish the README polish and run the tests.",
-  "resolved_source": "user_message",
-  "decision_basis_message": "",
-  "context_expanded_upward": false
-}
-```
-
-## Safety and Privacy
-
-- Reads only local `~/.codex/state_*.sqlite` and rollout JSONL files.
-- Does not upload conversations, call the network, or write to the Codex database.
-- Does not modify your project files unless you pass its output into another automation.
-- Returns an error when recovery fails instead of fabricating a request.
-
-In plain words: it is not a cloud memory service. It is a local bookmark with a flashlight.
-
 ## CLI
+
+You can also run the script directly for debugging or automation:
 
 ```bash
 python scripts/codexgo.py --cwd . --format text
@@ -155,24 +112,43 @@ Common options:
 --scope <mode>       Search mode: auto, exact, repo, or tree. Defaults to auto.
 --skip-current       Skip the current thread. Enabled by default.
 --recent <n>         Number of recent user messages to include. Defaults to 3.
---lookback <n>       Nearby timeline entries to include as context. Defaults to 6.
+--lookback <n>       Nearby timeline entries to include. Defaults to 6.
 --format <fmt>       text or json. Defaults to text.
 ```
 
-## Requirements
+JSON example:
+
+```json
+{
+  "status": "ok",
+  "resolved_request": "Finish the README polish and run the tests.",
+  "resolved_source": "user_message",
+  "decision_basis_message": "",
+  "context_expanded_upward": false
+}
+```
+
+## Local Rules
+
+- Reads only Codex state and session files on your own machine.
+- Does not upload conversations, call the network, or write back to Codex data.
+- Does not edit your project unless another automation consumes its output.
+- Uses deterministic rules; it is not another LLM agent.
+
+In plain words: it is not cloud memory. It is a bookmark with a flashlight.
+
+## Runtime Notes
 
 - Python 3.10+
-- Codex local state in `~/.codex`
-- No third-party Python packages
+- A local Codex data directory
+- No third-party Python dependencies
 
-## Limitations
+## Boundaries
 
-- Codex local state must exist; there is nothing to recover without history.
-- If Codex changes its SQLite schema or rollout format, the parser may need an update.
-- Ambiguous-reference recovery is rule-based, not LLM semantic reasoning.
-- Recovery works best from the same workspace or Git repository.
-
-It follows clues, but it does not pretend to be psychic. If it cannot recover the task, it says so.
+- If there is no local session record, there is nothing to read.
+- If Codex changes its local state format, the parser may need an update.
+- It works best inside the same workspace or Git repository.
+- It avoids short low-signal replies, but it is not an all-knowing language judge.
 
 ## Star History
 
@@ -189,7 +165,7 @@ It follows clues, but it does not pretend to be psychic. If it cannot recover th
 Run tests:
 
 ```bash
-python -m pytest tests/test_codexgo.py -p no:cacheprovider
+pytest
 ```
 
 ## License

@@ -5,8 +5,8 @@
 <h1 align="center">codexgo</h1>
 
 <p align="center">
-  <strong>一个很小的 Codex 断点恢复 skill。</strong><br>
-  线程断了也别慌，它会去本地记录里把任务捞回来。 (｀・ω・´)
+  <strong>给 Codex 新线程递一张“刚才干到哪了”的小纸条。</strong><br>
+  旧会话断了，别急着从头讲。让它先翻一下本机黑匣子。 (｀・ω・´)
 </p>
 
 <p align="center">
@@ -25,31 +25,46 @@
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/JY0xLU/codexgo/main?style=flat-square">
 </p>
 
-## 是什么
+## 一句话
 
-`codexgo` 处理一个很具体、也很烦人的问题：你刚把任务讲清楚，Codex 正在做，线程却因为 compact、崩溃或上下文丢失断掉了。新开一个会话输入 `codexgo`，它会像一个迷你侦探一样翻本地记录，把最应该继续的请求找回来。
+`codexgo` 是一个很小的 Codex skill。它不替你写代码，也不联网找资料，只负责一件事：当你被迫换到新 Codex 线程时，帮你从本机记录里整理出“下一句应该继续交给 Codex 的任务”。
 
-不玄学，不联网，也不碰你的数据库。它只是安静地读一读本地历史，然后告诉你：“刚才我们应该继续这个。” (｡•̀ᴗ-)✧
+它像一个本地黑匣子读取器。飞机没有了，黑匣子还在；线程没了，线索还在。
 
-## 亮点
+## 适合什么时候用
 
-| 特性 | 说明 |
+你已经把需求讲清楚了，Codex 也开始做了，但会话突然不可用了。新线程打开后，你当然可以手动复述一遍，不过这通常很烦，而且容易漏掉刚才定下来的约束。
+
+这时先输入：
+
+```text
+codexgo
+```
+
+它会在当前工作区附近找最近的 Codex 会话记录，把更像“任务本体”的那句话整理出来。这样新线程不用靠猜，也不用你临场背诵上一轮对话。
+
+## 它会交还什么
+
+`codexgo` 的输出重点不是“完整聊天记录”，而是一张续航提示卡：
+
+| 场景 | 它倾向于交还 |
 | --- | --- |
-| 小而专 | 一个 Python 脚本，一个 skill 文件，标准库实现 |
-| 安静安全 | 只读本地 Codex 数据，不上传对话，不修改数据库 |
-| 有点记性 | 会跳过低信息回复，并向上追溯“刚才同意的思路”“继续上一轮决定”等模糊引用 |
-| 好接脚本 | 同时支持普通文本输出和 JSON 输出 |
-| 适合拆开看 | 逻辑集中、依赖极少，方便读代码和改造 |
+| 最后一条就是明确任务 | 直接交还那条任务 |
+| 最后一条只是 `continue` / `go on` / `继续` | 往前找真正要继续的事情 |
+| 最后一条是 `ok` / `yes` / `好的` | 找回你刚刚认可的助手建议 |
+| 最后一条是补充说明 | 把补充和前面的任务线索拼在一起 |
+| 最后一条依赖旧上下文 | 附带必要的 supporting context |
+| 你要接自动化脚本 | 用 JSON 输出结构化字段 |
 
-## 安装
+它不会假装自己懂一切。找不到可恢复内容时，它会老实报错。
 
-`codexgo` 是一个 Codex skill，不是 pip 包。把仓库放进 Codex 的 `skills/codexgo` 目录，然后重启 Codex 就行。
+## 放到 Codex 里
+
+`codexgo` 是 Codex skill，不是 pip 包。把仓库放进 Codex 的 `skills/codexgo` 目录，再重启 Codex。
 
 ### Codex App
 
-如果你用的是 Codex 桌面 App，推荐先按你的 `CODEX_HOME` 找目录；没有设置时，Windows App 常见位置是 `D:\CodexData\.codex`，普通 CLI 常见位置是 `~/.codex`。
-
-Windows PowerShell：
+Codex 桌面 App 可能使用独立的 `CODEX_HOME`。在这台 Windows 机器上，常见位置是 `D:\CodexData\.codex`；普通 CLI 环境通常是 `~/.codex`。
 
 ```powershell
 $CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } elseif (Test-Path "D:\CodexData\.codex") { "D:\CodexData\.codex" } else { "$HOME\.codex" }
@@ -57,7 +72,7 @@ New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
 git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-然后完全重启 Codex App。小家伙要重新被扫描到，别只刷新页面。 (｀・ω・´)
+然后完全重启 Codex App。小纸条递送员要重新被扫描到。 (｡•̀ᴗ-)✧
 
 ### Codex CLI: macOS / Linux
 
@@ -74,73 +89,15 @@ New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
 git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-重启 Codex App，或者重新打开一个 Codex CLI 会话，然后输入：
-
-```text
-codexgo
-```
-
-如果你刚从一个断掉的线程里爬出来，这通常就是第一句要说的话。别解释第二遍，让小工具先翻翻旧账。
-
 ## 使用图
 
 <p align="center">
   <img src="assets/codexgo-usage.png" alt="codexgo recovery flow" width="100%">
 </p>
 
-## 它会处理什么
-
-它主要负责把“人类随口说的话”变回“机器可以继续执行的任务”。小小一只，但会努力往前翻。 (ง •̀_•́)ง
-
-| 中断前最后一条消息 | codexgo 怎么判断 |
-| --- | --- |
-| 真正的任务 | 直接返回这条任务 |
-| `continue` / `go on` / `继续` | 向前找到上一条真实请求 |
-| `ok` / `yes` / `好的` | 恢复你刚刚同意的助手方案 |
-| `补充：...` | 把补充内容和前面的上下文合并 |
-| “继续刚才那个思路” / “按上一轮决定走” | 自动向上扩展 supporting context |
-| 选型或方案比较 | 输出 `decision_basis_message` 作为决策依据 |
-| 需要接入脚本 | 输出 JSON，交给其他工具继续处理 |
-
-JSON 输出里会包含 `context_expanded_upward`，用于标记是否为了消解模糊引用而向更早的对话扩展了上下文。
-
-## 输出示例
-
-普通文本输出：
-
-```text
-Recovered Codex request
-- matched workspace: /path/to/project
-- source: user_message
-- needs more context: False
-- context expanded upward: False
-
-Resolved request:
-Finish the README polish and run the tests.
-```
-
-JSON 输出适合脚本接入：
-
-```json
-{
-  "status": "ok",
-  "resolved_request": "Finish the README polish and run the tests.",
-  "resolved_source": "user_message",
-  "decision_basis_message": "",
-  "context_expanded_upward": false
-}
-```
-
-## 安全和隐私
-
-- 只读取本机 `~/.codex/state_*.sqlite` 和 rollout JSONL。
-- 不上传对话、不调用网络、不写入 Codex 数据库。
-- 不修改当前项目文件，除非你把输出交给其他自动化脚本继续执行。
-- 出错时会返回错误信息，不会伪造恢复结果。
-
-换句话说，它不是“云端记忆助手”，只是你电脑里的小书签。
-
 ## 命令行
+
+你也可以把它当普通脚本调用，方便调试或接到别的自动化里：
 
 ```bash
 python scripts/codexgo.py --cwd . --format text
@@ -159,20 +116,39 @@ python scripts/codexgo.py --cwd . --format json
 --format <fmt>       text 或 json，默认是 text。
 ```
 
-## 要求
+JSON 输出示例：
+
+```json
+{
+  "status": "ok",
+  "resolved_request": "Finish the README polish and run the tests.",
+  "resolved_source": "user_message",
+  "decision_basis_message": "",
+  "context_expanded_upward": false
+}
+```
+
+## 本地规矩
+
+- 只检查你机器上的 Codex 状态索引和会话流水文件。
+- 不上传对话，不调用网络，不改写 Codex 数据。
+- 不修改当前项目，除非你把输出交给别的自动化继续执行。
+- 规则型判断，不是一个新的 LLM 语义代理。
+
+换句话说，它不是“云记忆”，只是你电脑里的一枚小书签。书签不会很聪明，但它知道刚才夹在哪一页。
+
+## 运行条件
 
 - Python 3.10+
-- 本地存在 Codex 状态目录 `~/.codex`
+- 本机存在 Codex 数据目录
 - 不需要第三方 Python 依赖
 
-## 限制
+## 边界
 
-- Codex 本地状态目录必须存在，否则没有历史记录可恢复。
-- 如果 Codex 未来改动 SQLite schema 或 rollout 格式，可能需要更新解析逻辑。
-- 模糊引用追溯是规则型逻辑，不是 LLM 语义推理。
-- 在同一工作区或同一 Git 仓库中恢复效果最好。
-
-它会尽力找线索，但不会装作什么都懂。找不到就老实报错，这点很重要。
+- 如果本机没有对应会话记录，它没有东西可翻。
+- 如果 Codex 将来改动本地状态格式，解析逻辑可能需要更新。
+- 它更擅长在同一工作区或同一 Git 仓库内续接任务。
+- 它会尽量避开“嗯”“继续”“好的”这类短回复，但不是自然语言全知裁判。
 
 ## Star History
 
@@ -189,7 +165,7 @@ python scripts/codexgo.py --cwd . --format json
 运行测试：
 
 ```bash
-python -m pytest tests/test_codexgo.py -p no:cacheprovider
+pytest
 ```
 
 ## License
