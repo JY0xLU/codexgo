@@ -74,23 +74,40 @@ codexgo
 | 好接脚本 | 同时支持普通文本输出和 JSON 输出 |
 | 适合拆开看 | 逻辑集中、依赖极少，方便读代码和改造 |
 
-## 30 秒安装
+## 安装
 
-macOS / Linux：
+`codexgo` 是一个 Codex skill，不是 pip 包。把仓库放进 Codex 的 `skills/codexgo` 目录，然后重启 Codex 就行。
 
-```bash
-mkdir -p ~/.codex/skills
-git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
-```
+### Codex App
+
+如果你用的是 Codex 桌面 App，推荐先按你的 `CODEX_HOME` 找目录；没有设置时，Windows App 常见位置是 `D:\CodexData\.codex`，普通 CLI 常见位置是 `~/.codex`。
 
 Windows PowerShell：
 
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.codex\skills" | Out-Null
-git clone https://github.com/JY0xLU/codexgo.git "$HOME\.codex\skills\codexgo"
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } elseif (Test-Path "D:\CodexData\.codex") { "D:\CodexData\.codex" } else { "$HOME\.codex" }
+New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-重启 Codex，然后在新会话开头输入：
+然后完全重启 Codex App。小家伙要重新被扫描到，别只刷新页面。 (｀・ω・´)
+
+### Codex CLI: macOS / Linux
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+git clone https://github.com/JY0xLU/codexgo.git "${CODEX_HOME:-$HOME/.codex}/skills/codexgo"
+```
+
+### Codex CLI: Windows PowerShell
+
+```powershell
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { "$HOME\.codex" }
+New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
+```
+
+重启 Codex App，或者重新打开一个 Codex CLI 会话，然后输入：
 
 ```text
 codexgo

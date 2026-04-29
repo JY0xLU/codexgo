@@ -74,23 +74,40 @@ It recovers the last actionable request from the previous session so you can con
 | Script-friendly | Supports both plain text and JSON output |
 | Easy to poke at | Compact logic that is easy to read, study, and modify |
 
-## Install in 30 seconds
+## Install
 
-macOS / Linux:
+`codexgo` is a Codex skill, not a pip package. Put this repository in Codex's `skills/codexgo` directory, then restart Codex.
 
-```bash
-mkdir -p ~/.codex/skills
-git clone https://github.com/JY0xLU/codexgo.git ~/.codex/skills/codexgo
-```
+### Codex App
+
+If you use the Codex desktop app, install into your active `CODEX_HOME`. When it is not set, the Windows app often uses `D:\CodexData\.codex`; regular CLI setups usually use `~/.codex`.
 
 Windows PowerShell:
 
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.codex\skills" | Out-Null
-git clone https://github.com/JY0xLU/codexgo.git "$HOME\.codex\skills\codexgo"
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } elseif (Test-Path "D:\CodexData\.codex") { "D:\CodexData\.codex" } else { "$HOME\.codex" }
+New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
 ```
 
-Restart Codex, then type this at the beginning of a fresh session:
+Then fully restart the Codex app so it can rescan local skills. A tiny goblin must be discovered before it can help. (｀・ω・´)
+
+### Codex CLI: macOS / Linux
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+git clone https://github.com/JY0xLU/codexgo.git "${CODEX_HOME:-$HOME/.codex}/skills/codexgo"
+```
+
+### Codex CLI: Windows PowerShell
+
+```powershell
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { "$HOME\.codex" }
+New-Item -ItemType Directory -Force "$CodexHome\skills" | Out-Null
+git clone https://github.com/JY0xLU/codexgo.git "$CodexHome\skills\codexgo"
+```
+
+Restart the Codex app, or open a fresh Codex CLI session, then type:
 
 ```text
 codexgo
