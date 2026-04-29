@@ -209,11 +209,11 @@ It follows clues, but it does not pretend to be psychic. If it cannot recover th
 
 ## Star History
 
-<a href="https://www.star-history.com/#JY0xLU/codexgo&Date">
+<a href="https://www.star-history.com/?repos=JY0xLU%2Fcodexgo&type=date&legend=top-left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=JY0xLU/codexgo&type=Date" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JY0xLU/codexgo&type=date&legend=top-left" />
   </picture>
 </a>
 
